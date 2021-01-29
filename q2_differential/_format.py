@@ -1,4 +1,6 @@
 import xarray as xr
+import qiime2.plugin.model as model
+from q2_differential.plugin_setup import plugin
 
 
 class FeatureTensorNetCDFFormat(model.BinaryFileFormat):
@@ -17,7 +19,7 @@ FeatureTensorNetCDFDirFmt = model.SingleFileDirectoryFormat(
     'FeatureTensorNetCDFDirFmt', 'feature-tensor.nc', FeatureTensorNetCDFFormat)
 
 
-plugin.register_views(FeatureTensorCDFFormat, FeatureTensorDirFmt,
+plugin.register_views(FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt,
                       xr.DataArray)
 
 

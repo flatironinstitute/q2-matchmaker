@@ -4,11 +4,11 @@ import xarray as xr
 
 
 def dirichlet_multinomial(
-        table : biom.Table,
+        table: biom.Table,
         groups: qiime2.CategoricalMetadataColumn,
         training_samples: qiime2.CategoricalMetadataColumn = None,
-        percent_test_examples : float = 0.1,
-        monte_carlo_samples : int = 1000,
+        percent_test_examples: float = 0.1,
+        monte_carlo_samples: int = 1000,
         reference_group=None) -> xr.DataArray:
     # Perform train/test split
     groups = groups.to_series()
@@ -46,7 +46,7 @@ def dirichlet_multinomial(
     diffs = diffs[np.array(cats) != ref_idx]
     samples = xr.DataArray(
         diffs,
-        dims=['differences', 'features', 'monte_carlo_samples']
+        dims=['differences', 'features', 'monte_carlo_samples'],
         coords=dict(
             groups=cats,
             features=train_table.ids(axis='observation'),

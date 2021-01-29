@@ -1,9 +1,17 @@
 import importlib
 import qiime2.plugin
 import qiime2.sdk
+from qiime2.plugin import (Str, Properties, Int, Float,  Metadata, Bool,
+                           MetadataColumn, Categorical)
 from q2_differential import __version__
-from q2_types._format import FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt
-from q2_types._type import FeatureTensor
+from q2_differential._type import FeatureTensor
+from q2_differential._format import FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt
+from q2_differential._method import dirichlet_multinomial
+from q2_types.feature_table import FeatureTable, Frequency
+from q2_types.ordination import PCoAResults
+from q2_types.sample_data import SampleData
+from q2_types.feature_data import (FeatureData, Differential)
+
 
 
 plugin = qiime2.plugin.Plugin(
@@ -24,19 +32,19 @@ plugin.methods.register_function(
     parameters={
         'metadata': MetadataColumn[Categorical],
         'training_column': Str,
-        'num_random_test_examples': Int
+        'num_random_test_examples': Int,
         'monte_carlo_samples': Int
     },
     outputs=[
-        ('differentials', FeatureTensor),
-        ('differential_stats', SampleData[DifferentialStats]),
+        ('differentials', FeatureTensor)
+        # ('differential_stats', SampleData[DifferentialStats]),
     ],
     input_descriptions={
         "table": "Input table of counts.",
     },
     output_descriptions={
         'differentials': ('Output posterior differentials learned from the '
-                          'Dirichlet ultinomial.'),
+                          'Dirichlet Multinomial.'),
     },
     parameter_descriptions={
         'metadata': ('The categorical sample metadata column to test for '
@@ -54,10 +62,10 @@ plugin.methods.register_function(
     name='Dirichilet Multinomial',
     description=("Fits a Dirchilet Multinomial model and computes biased"
                  "log-fold change."),
-    citations=[]
+    plugin=[]
 )
 
-plugin.register_formats(FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt)
+# citations.register_formats(FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt)
 plugin.register_semantic_types(FeatureTensor)
 
-importlib.import_module('songbird.q2._transformer')
+importlib.import_module('q2_differential._transformer')

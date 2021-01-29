@@ -37,7 +37,7 @@ setup(name='q2-differential',
           'matplotlib',
       ],
       entry_points={
-          'qiime2.plugins': ['q2-differential=q2_differential.q2.plugin_setup:plugin']
+          'qiime2.plugins': ['q2-differential=q2_differential.plugin_setup:plugin']
       },
       classifiers=classifiers,
-      )
+)
