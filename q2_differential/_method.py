@@ -41,10 +41,11 @@ def dirichlet_multinomial(
         samples[j] = np.random.dirichlet(
             group_mean, size=monte_carlo_samples).T
     # Build x-array object
-    diffs = (samples / np.expand_dims(samples[ref_idx], 0))
+    diffs = np.log((samples / np.expand_dims(samples[ref_idx], 0)))
     idx = np.array([reference_group != c for c in cats])
     diffs = diffs[idx]
     cats.remove(reference_group)
+    print(reference_group)
     samples = xr.DataArray(
         diffs,
         dims=['differentials', 'features', 'monte_carlo_samples'],
