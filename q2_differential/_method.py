@@ -13,43 +13,43 @@ def dirichlet_multinomial(
         reference_group: str = None) -> xr.DataArray:
     # Perform train/test split
     groups = groups.to_series()
-    if training_samples is not None:
+    if training_samples is None:
         idx = np.random.random(len(groups)) < percent_test_examples
     else:
         idx = training_samples == 'Test'
     train_samples = set(groups.loc[~idx].index)
     func = lambda v, i, m: i in train_samples
-    train_table = table.filter(func, inplace=False)
+    train_table = table.filter(func, inplace=False, axis='sample')
     func = lambda v, i, m: i not in train_samples
-    test_table = table.filter(func, inplace=False)
-    cats = list(set(metadata))
+    test_table = table.filter(func, inplace=False, axis='sample')
+    cats = list(groups.value_counts().index)
     if reference_group is None:
         ref_idx = 0
         reference_group = cats[0]
     else:
         ref_idx = cats.index(reference_group)
     # Compute Multinomial probabilities
-    groups = {}
-    N, D = train_table.shape
+    D, N = train_table.shape
     C = len(cats)
     samples = np.zeros((C, D, monte_carlo_samples))
     for j, c in enumerate(cats):
-        samples = set(metadata.index[metadata == c])
-        func = lambda v, i, m: i in samples
+        sample_set = set(groups.index[groups == c])
+        func = lambda v, i, m: i in sample_set
         subtable = table.filter(func, inplace=False)
-        groups[c] = subtable.sum(axis='observations') + 1
+        group_mean = subtable.sum(axis='observation') + 1
         # Draw MCMC samples
-        for i in range(monte_carlo_samples):
-            samples[j, :, i] = np.random.dirichlet(
-                groups[c], size=monte_carlo_samples)
+        samples[j] = np.random.dirichlet(
+            group_mean, size=monte_carlo_samples).T
     # Build x-array object
-    diffs = samples / samples[ref_idx]
-    diffs = diffs[np.array(cats) != ref_idx]
+    diffs = (samples / np.expand_dims(samples[ref_idx], 0))
+    idx = np.array([reference_group != c for c in cats])
+    diffs = diffs[idx]
+    cats.remove(reference_group)
     samples = xr.DataArray(
         diffs,
-        dims=['differences', 'features', 'monte_carlo_samples'],
+        dims=['differentials', 'features', 'monte_carlo_samples'],
         coords=dict(
-            groups=cats,
+            differentials=cats,
             features=train_table.ids(axis='observation'),
             monte_carlo_samples=np.arange(monte_carlo_samples)
         ),
