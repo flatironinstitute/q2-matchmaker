@@ -11,7 +11,7 @@ from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.ordination import PCoAResults
 from q2_types.sample_data import SampleData
 from q2_types.feature_data import (FeatureData, Differential)
-
+import xarray as xr
 
 
 plugin = qiime2.plugin.Plugin(
@@ -30,10 +30,11 @@ plugin.methods.register_function(
     function=dirichlet_multinomial,
     inputs={'table': FeatureTable[Frequency]},
     parameters={
-        'metadata': MetadataColumn[Categorical],
-        'training_column': Str,
-        'num_random_test_examples': Int,
-        'monte_carlo_samples': Int
+        'groups': MetadataColumn[Categorical],
+        'training_samples': MetadataColumn[Categorical],
+        'percent_test_examples': Float,
+        'monte_carlo_samples': Int,
+        'reference_group': Str
     },
     outputs=[
         ('differentials', FeatureTensor)
@@ -47,25 +48,34 @@ plugin.methods.register_function(
                           'Dirichlet Multinomial.'),
     },
     parameter_descriptions={
-        'metadata': ('The categorical sample metadata column to test for '
+        'groups': ('The categorical sample metadata column to test for '
                      'differential abundance across.'),
-        "training-column": (
+        "training_samples": (
             'The column in the metadata file used to '
             'specify training and testing. These columns '
             'should be specifically labeled (Train) and (Test).'
         ),
-        "num-random-test-examples": (
-            'Number of random samples to hold out for cross-validation if '
+        "percent_test_examples": (
+            'Percentage of random samples to hold out for cross-validation if '
             'a training column is not specified.'
+        ),
+        "monte_carlo_samples": (
+            'Number of monte carlo samples to draw from '
+            'posterior distribution.'
+        ),
+        "reference_group": (
+            'Reference category to compute log-fold change from.'
         )
     },
     name='Dirichilet Multinomial',
     description=("Fits a Dirchilet Multinomial model and computes biased"
                  "log-fold change."),
-    plugin=[]
+    citations=[]
 )
 
-# citations.register_formats(FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt)
 plugin.register_semantic_types(FeatureTensor)
+plugin.register_views(FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt,
+                      xr.DataArray)
+# citations.register_formats(FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt)
 
 importlib.import_module('q2_differential._transformer')

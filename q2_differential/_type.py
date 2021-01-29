@@ -1,6 +1,5 @@
 from qiime2.plugin import SemanticType, model
 from q2_types.sample_data import SampleData
-from q2_differential.plugin_setup import plugin
 
 
 # Tensor type sorting information about features

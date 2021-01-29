@@ -1,6 +1,7 @@
 import qiime2
 import numpy as np
 import xarray as xr
+import biom
 
 
 def dirichlet_multinomial(
@@ -9,7 +10,7 @@ def dirichlet_multinomial(
         training_samples: qiime2.CategoricalMetadataColumn = None,
         percent_test_examples: float = 0.1,
         monte_carlo_samples: int = 1000,
-        reference_group=None) -> xr.DataArray:
+        reference_group: str = None) -> xr.DataArray:
     # Perform train/test split
     groups = groups.to_series()
     if training_samples is not None:
@@ -51,7 +52,7 @@ def dirichlet_multinomial(
             groups=cats,
             features=train_table.ids(axis='observation'),
             monte_carlo_samples=np.arange(monte_carlo_samples)
-        )
+        ),
         attrs=dict(
             description='Posterior samples of groups',
             reference=reference_group
