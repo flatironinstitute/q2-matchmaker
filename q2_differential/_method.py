@@ -45,12 +45,11 @@ def dirichlet_multinomial(
     idx = np.array([reference_group != c for c in cats])
     diffs = diffs[idx]
     cats.remove(reference_group)
-    print(reference_group)
     samples = xr.DataArray(
         diffs,
-        dims=['differentials', 'features', 'monte_carlo_samples'],
+        dims=['contrasts', 'features', 'monte_carlo_samples'],
         coords=dict(
-            differentials=cats,
+            contrasts=cats,
             features=train_table.ids(axis='observation'),
             monte_carlo_samples=np.arange(monte_carlo_samples)
         ),

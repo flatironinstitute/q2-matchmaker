@@ -7,6 +7,7 @@ from q2_differential import __version__
 from q2_differential._type import FeatureTensor
 from q2_differential._format import FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt
 from q2_differential._method import dirichlet_multinomial
+from q2_differential._visualizer import rankplot
 from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.ordination import PCoAResults
 from q2_types.sample_data import SampleData
@@ -73,9 +74,22 @@ plugin.methods.register_function(
     citations=[]
 )
 
+
+plugin.visualizers.register_function(
+    function=rankplot,
+    inputs={'differentials': FeatureTensor},
+    parameters={},
+    input_descriptions={'differentials': 'Differentials or log-fold changes.'},
+    parameter_descriptions={},
+    name='Rank plot',
+    description="Generate a rank plot of the log-fold changes",
+    citations=[]
+)
+
+
+plugin.register_formats(FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt)
 plugin.register_semantic_types(FeatureTensor)
-plugin.register_views(FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt,
-                      xr.DataArray)
-# citations.register_formats(FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt)
+plugin.register_semantic_type_to_format(
+    FeatureTensor, FeatureTensorNetCDFDirFmt)
 
 importlib.import_module('q2_differential._transformer')
