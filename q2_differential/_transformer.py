@@ -3,10 +3,12 @@ from q2_differential._format import FeatureTensorNetCDFFormat
 import xarray as xr
 
 
+@plugin.register_transformer
 def _100(ff : FeatureTensorNetCDFFormat) -> xr.DataArray:
-    return xr.open_dataset(str(ff))
+    return xr.open_dataarray(str(ff))
 
 
+@plugin.register_transformer
 def _101(tensor : xr.DataArray) -> FeatureTensorNetCDFFormat:
     ff = FeatureTensorNetCDFFormat()
     with ff.open() as fh:

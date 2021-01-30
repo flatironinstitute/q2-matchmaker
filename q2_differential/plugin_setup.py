@@ -39,7 +39,6 @@ plugin.methods.register_function(
     },
     outputs=[
         ('differentials', FeatureTensor)
-        # ('differential_stats', SampleData[DifferentialStats]),
     ],
     input_descriptions={
         "table": "Input table of counts.",
