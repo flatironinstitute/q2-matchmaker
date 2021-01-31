@@ -8,7 +8,7 @@ def hotelling_ttest(X):
 
     Parameters
     ----------
-    X : pd.DataFrame
+    X : np.array
        Rows are posterior draws, columns are features,
 
     Returns
@@ -37,7 +37,7 @@ def spherical_test(X):
 
     Parameters
     ----------
-    X : pd.DataFrame
+    X : np.array
        Rows are posterior draws, columns are features,
 
     Returns
@@ -54,3 +54,23 @@ def spherical_test(X):
     return d < r
 
 
+def rank_test(X):
+    """ Computes a cumulative rank test.
+
+    This computes the probability of P(x < X) where x
+    is the feature of interest, and X are all of the features
+    that have a mean rank less than x.
+    """
+    X_ = X - X[:, 0].reshape(-1, 1)
+    X_ = X_[:, 1:]
+    muX = X_.mean(axis=0)
+    idx = np.argsort(muX)
+    X_ = X_[idx]
+    d = len(muX)
+    n = len(X_)
+    pval = np.zeros(d)
+    for i in range(d):
+        T = np.sum(X[i] > X[i + 1:])
+        p = 1 - ((T + 1) / n)
+        pval[i] = p
+    return idx, pval
