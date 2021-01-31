@@ -1,4 +1,4 @@
-from q2_differential._stats import hotelling_ttest, convex_hull_test
+from q2_differential._stats import hotelling_ttest, spherical_test
 import numpy as np
 import unittest
 
@@ -16,10 +16,10 @@ class TestStats(unittest.TestCase):
         _, pval = hotelling_ttest(self.Xreal)
         self.assertLess(pval, 0.01)
 
-    def test_convex_hull_test(self):
-        ans = convex_hull_test(self.Xrand)
+    def test_spherical_test(self):
+        ans = spherical_test(self.Xrand)
         self.assertTrue(ans)
-        ans = convex_hull_test(self.Xreal)
+        ans = spherical_test(self.Xreal)
         self.assertFalse(ans)
 
 

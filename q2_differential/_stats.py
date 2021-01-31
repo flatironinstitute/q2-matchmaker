@@ -1,5 +1,5 @@
-from scipy.spatial import ConvexHull, Delaunay
 from scipy.stats import f as f_distrib
+from scipy.spatial.distance import pdist, euclidean
 import numpy as np
 
 
@@ -10,6 +10,13 @@ def hotelling_ttest(X):
     ----------
     X : pd.DataFrame
        Rows are posterior draws, columns are features,
+
+    Returns
+    -------
+    t2 : np.float32
+       T2 statistic
+    pval : np.float32
+       P-value
     """
     # convert table to ALR coordinates
     X_ = X - X[:, 0].reshape(-1, 1)
@@ -24,21 +31,26 @@ def hotelling_ttest(X):
     return t2, pval
 
 
-def convex_hull_test(X):
-    """ Tests if zero is included within the convex hull.
+def spherical_test(X):
+    """ Fits a sphere that contains all of the points in X
+    and tests to see if 0 is inside of that sphere.
 
     Parameters
     ----------
-    x : np.array
-       Rows are features, columns are posterior draws
+    X : pd.DataFrame
+       Rows are posterior draws, columns are features,
+
+    Returns
+    -------
+    True if zero is inside of sphere, False if not.
     """
-    # convert table to ALR coordinates
     X_ = X - X[:, 0].reshape(-1, 1)
     X_ = X_[:, 1:]
-    # Construct convex hull
-    hull = ConvexHull(X_)
-    hull = Delaunay(hull.points)
-    # Test if zero is contained within the convex hull
-    p = np.zeros(X_.shape[1])
-    ans = hull.find_simplex(p) >= 0
-    return ans
+    muX = X_.mean(axis=0)
+    dists = pdist(X_)
+    r = np.max(dists)   # radius of sphere
+    p = np.zeros_like(muX)
+    d = euclidean(muX, p)
+    return d < r
+
+
