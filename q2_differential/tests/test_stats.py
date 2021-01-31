@@ -5,7 +5,7 @@ import unittest
 
 class TestStats(unittest.TestCase):
     def setUp(self):
-        n, p = 100, 5
+        n, p = 100, 50
         self.Xrand = np.random.randn(n, p)
         self.Xreal = np.random.randn(n, p)
         self.Xreal[:, 0] += 10
