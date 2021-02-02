@@ -9,7 +9,7 @@ def dirichlet_multinomial(
         groups: qiime2.CategoricalMetadataColumn,
         training_samples: qiime2.CategoricalMetadataColumn = None,
         percent_test_examples: float = 0.1,
-        monte_carlo_samples: int = 1000,
+        monte_carlo_samples: int = 2000,
         reference_group: str = None) -> xr.DataArray:
     # Perform train/test split
     groups = groups.to_series()
