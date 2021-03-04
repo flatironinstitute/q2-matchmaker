@@ -14,3 +14,15 @@ def _101(tensor : xr.DataArray) -> FeatureTensorNetCDFFormat:
     with ff.open() as fh:
         tensor.to_netcdf(fh)
     return ff
+
+@plugin.register_transformer
+def _102(ff : FeatureTensorNetCDFFormat) -> xr.Dataset:
+    return xr.open_dataarray(str(ff))
+
+
+@plugin.register_transformer
+def _103(tensor : xr.Dataset) -> FeatureTensorNetCDFFormat:
+    ff = FeatureTensorNetCDFFormat()
+    with ff.open() as fh:
+        tensor.to_netcdf(fh)
+    return ff
