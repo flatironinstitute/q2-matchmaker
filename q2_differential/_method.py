@@ -1,5 +1,6 @@
 import qiime2
 import numpy as np
+import pandas as pd
 import xarray as xr
 import biom
 from q2_differential._stan import _case_control_func
@@ -10,9 +11,9 @@ def negative_binomial_case_control(
         case_ctrl_ids: qiime2.CategoricalMetadataColumn,
         groups: qiime2.CategoricalMetadataColumn,
         monte_carlo_samples: int = 2000,
-        cores : int = 1) -> xr.Dataset):
+        cores : int = 1) -> xr.Dataset:
 
-    metadata = pd.DataFrame({'cc_ids': case_ctrl_ids.to_series()
+    metadata = pd.DataFrame({'cc_ids': case_ctrl_ids.to_series(),
                              'groups': groups.to_series()})
     depth = table.sum(axis=1)
 
