@@ -2,6 +2,42 @@ import qiime2
 import numpy as np
 import xarray as xr
 import biom
+from q2_differential._stan import _case_control_func
+
+
+def negative_binomial_case_control(
+        counts: pd.DataFrame,
+        case_ctrl_ids: qiime2.CategoricalMetadataColumn,
+        groups: qiime2.CategoricalMetadataColumn,
+        monte_carlo_samples: int = 2000,
+        cores : int = 1) -> xr.Dataset):
+
+    metadata = pd.DataFrame({'cc_ids': case_ctrl_ids.to_series()
+                             'groups': groups.to_series()})
+    depth = table.sum(axis=1)
+
+    pfunc = lambda x: _case_control_func(counts=np.array(x.values),
+                                         case_ctrl_ids=metadata['cc_ids'].values,
+                                         case_member=metadata['groups'].values,
+                                         depth=depth,
+                                         mc_samples=monte_carlo_samples)
+    if cores > 1:
+        try:
+            import dask.dataframe as dd
+            dcounts = dd.from_pandas(counts.T, npartitions=cores)
+            res = dcounts.apply(pfunc, axis=1)
+            resdf = res.compute(scheduler='processes')
+            data_df = list(resdf.values)
+        except:
+            data_df = list(counts.T.apply(pfunc, axis=1).values)
+    else:
+        data_df = list(counts.T.apply(pfunc, axis=1).values)
+    samples = xr.concat([df.to_xarray() for df in data_df], dim="features")
+    samples = samples.assign_coords(coords={
+            'features' : counts.columns,
+            'monte_carlo_samples' : np.arange(monte_carlo_samples)
+    })
+    return samples
 
 
 def dirichlet_multinomial(
