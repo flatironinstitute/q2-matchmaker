@@ -30,7 +30,7 @@ def _case_control_func(counts : np.array, case_ctrl_ids : np.array,
     dat = {
         'N' : len(counts),
         'C' : int(max(case_ids) + 1),
-        'depth' : list(map(int, np.log(depth))),
+        'depth' : list(np.log(depth)),
         'y' : list(map(int, counts.astype(np.int64))),
         'cc_bool' : list(map(int, case_member)),
         'cc_ids' : list(map(int, case_ids + 1))
