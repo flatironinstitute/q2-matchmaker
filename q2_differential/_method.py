@@ -19,7 +19,7 @@ def negative_binomial_case_control(
     metadata['groups'] = (metadata['groups'] == reference_group).astype(np.int64)
 
     # take intersection
-    ids = list(set(metadata.index) & set(counts.index))
+    ids = list(set(metadata.index) & set(table.index))
     counts = table.loc[idx]
     metadata = metadata.loc[idx]
     depth = table.sum(axis=1)
