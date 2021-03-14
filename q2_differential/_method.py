@@ -16,7 +16,7 @@ def negative_binomial_case_control(
 
     metadata = pd.DataFrame({'cc_ids': matching_ids.to_series(),
                              'groups': groups.to_series()})
-    metadata['groups'] = (metadata['groups'] == control_group).astype(np.int64)
+    metadata['groups'] = (metadata['groups'] == reference_group).astype(np.int64)
 
     # take intersection
     ids = list(set(metadata.index) & set(counts.index))
