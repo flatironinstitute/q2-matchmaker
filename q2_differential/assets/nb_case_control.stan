@@ -1,9 +1,8 @@
 
 functions {
   vector nbcc(vector beta, vector theta, real[] x, int[] y){
-    int D = dims(y)[2];
-    int N = dims(x)[1];
-    int C = dims(beta)[1] / D - 3;
+    int D = size(y) - 2;
+    int C = (size(beta) / D) - 3;
     // parameters
     matrix[C, D] control;
     for (c in 1:C){
