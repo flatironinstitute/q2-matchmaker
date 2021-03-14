@@ -7,19 +7,19 @@ functions {
     // parameters
     matrix[C, D] control;
     for (c in 1:C){
-      control[c] = to_row_vector(beta[(c - 1) * D : c * D]);
+      control[c] = to_row_vector(beta[1 + (c - 1) * D : c * D]);
     }
-    vector[D] diff = beta[C*D: (C+1)*D];
+    vector[D] diff = beta[1 + C * D : (C + 1) * D];
     vector[2] disp[D];
-    disp[1] = beta[(C+1)*D: (C+2)*D];
-    disp[2] = beta[(C+2)*D: (C+3)*D];
+    disp[1] = beta[1 + (C + 1) * D : (C + 2) * D];
+    disp[2] = beta[1 + (C + 2) * D : (C + 3) * D];
     // data
     real depth = x[1];
     int cc_bool = y[1];
     int cc_id = y[2];
     // get log-likelihood
     vector[D] lam = to_vector(control[cc_id]) + diff * cc_bool;
-    real lp = neg_binomial_2_log_lpmf(y[2:] | lam + depth, disp[cc_bool + 1]);
+    real lp = neg_binomial_2_log_lpmf(y[3:] | lam + depth, disp[cc_bool + 1]);
     return [lp]';
   }
 }
@@ -35,12 +35,12 @@ data {
 }
 
 transformed data{
-  int ys[N, 3 + D];
+  int ys[N, D + 2];
   real xs[N, 1];
   for (n in 1:N){
     ys[n, 1] = cc_bool[n];
     ys[n, 2] = cc_ids[n];
-    ys[n, 2:2+D] = y[n];
+    ys[n, 3:] = y[n];
     xs[n] = {depth[n]};
   }
 
@@ -59,11 +59,11 @@ parameters {
 transformed parameters{
   vector[(C + 3) * D] beta;
   for (c in 1:C){
-    beta[(c - 1) * D : c * D] = to_vector(control[c]);
+    beta[1 + (c - 1) * D : c * D] = to_vector(control[c]);
   }
-  beta[C*D: (C+1)*D] = diff;
-  beta[(C+1)*D: (C+2)*D] = to_vector(disp[1]);
-  beta[(C+2)*D: (C+3)*D] = to_vector(disp[2]);
+  beta[1 + C * D: (C + 1) * D] = diff;
+  beta[1 + (C + 1) * D : (C + 2) * D] = to_vector(disp[1]);
+  beta[1 + (C + 2) * D : (C + 3) * D] = to_vector(disp[2]);
 }
 model {
   // setting priors ...

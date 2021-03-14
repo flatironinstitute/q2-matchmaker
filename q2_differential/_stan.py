@@ -46,12 +46,12 @@ def _case_control_full(counts : np.array, case_ctrl_ids : np.array,
             json.dump(dat, f)
         # see https://mattocci27.github.io/assets/poilog.html
         # for recommended parameters for poisson log normal
-        prior = sm.sample(data=data_path, iter_sampling=100, chains=4,
-                          iter_warmup=0,
-                          adapt_delta = 0.9, max_treedepth = 20)
         posterior = sm.sample(data=data_path, iter_sampling=mc_samples, chains=4,
                               iter_warmup=mc_samples // 2,
                               adapt_delta = 0.9, max_treedepth = 20)
+        prior = sm.sample(data=data_path, iter_sampling=100, chains=4,
+                          iter_warmup=0,
+                          adapt_delta = 0.9, max_treedepth = 20)
         posterior.diagnose()
         return posterior, prior
 
