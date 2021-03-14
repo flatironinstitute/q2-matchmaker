@@ -7,14 +7,21 @@ from q2_differential._stan import _case_control_func
 
 
 def negative_binomial_case_control(
-        counts: pd.DataFrame,
-        case_ctrl_ids: qiime2.CategoricalMetadataColumn,
+        table: pd.DataFrame,
+        matching_ids: qiime2.CategoricalMetadataColumn,
         groups: qiime2.CategoricalMetadataColumn,
         monte_carlo_samples: int = 2000,
+        reference_group : str = 'TD',
         cores : int = 1) -> xr.Dataset:
 
-    metadata = pd.DataFrame({'cc_ids': case_ctrl_ids.to_series(),
+    metadata = pd.DataFrame({'cc_ids': matching_ids.to_series(),
                              'groups': groups.to_series()})
+    metadata['groups'] = (metadata['groups'] == control_group).astype(np.int64)
+
+    # take intersection
+    ids = list(set(metadata.index) & set(counts.index))
+    counts = table.loc[idx]
+    metadata = metadata.loc[idx]
     depth = table.sum(axis=1)
 
     pfunc = lambda x: _case_control_func(counts=np.array(x.values),

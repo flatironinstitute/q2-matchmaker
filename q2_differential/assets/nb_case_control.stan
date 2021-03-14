@@ -15,14 +15,9 @@ parameters {
   real<lower=0.001> disp[2]; // per microbe dispersion for both case-controls
 }
 
-transformed parameters {
-  vector[N] lam;
-  for (n in 1:N){
-    lam[n] = control[cc_ids[n]] + diff * cc_bool[n];
-  }
-}
-
 model {
+  vector[N] lam;
+
   // setting priors ...
   disp ~ inv_gamma(1., 1.);
   sigma ~ inv_gamma(1., 1.);
@@ -30,7 +25,12 @@ model {
   diff ~ normal(mu, sigma);
   control ~ normal(0, 10); // vague normal prior for controls
 
+  for (n in 1:N){
+    lam[n] = control[cc_ids[n]] + diff * cc_bool[n];
+  }
+
   // generating counts
+  // TODO: replace with map_rect
   for (n in 1:N){
     target += neg_binomial_2_log_lpmf(y[n] | lam[n] + depth[n],
                                       disp[cc_bool[n] + 1]);
