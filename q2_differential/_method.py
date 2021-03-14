@@ -22,8 +22,7 @@ def negative_binomial_case_control(
     idx = list(set(metadata.index) & set(table.index))
     counts = table.loc[idx]
     metadata = metadata.loc[idx]
-    depth = table.sum(axis=1)
-
+    depth = counts.sum(axis=1)
     pfunc = lambda x: _case_control_func(counts=np.array(x.values),
                                          case_ctrl_ids=metadata['cc_ids'].values,
                                          case_member=metadata['groups'].values,
