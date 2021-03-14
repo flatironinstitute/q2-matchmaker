@@ -3,7 +3,7 @@ from q2_types.sample_data import SampleData
 
 
 # Tensor type sorting information about features
-FeatureTensor = SemanticType('DifferentialStats')
+FeatureTensor = SemanticType('FeatureTensor')
 
 
 # differential stats summarizing training / testing error
