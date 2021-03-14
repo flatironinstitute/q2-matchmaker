@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import biom
-from q2_differential._stan import _case_control_func
+from q2_differential._stan import _case_control_full
 
 
 def negative_binomial_case_control(
@@ -23,27 +23,18 @@ def negative_binomial_case_control(
     counts = table.loc[idx]
     metadata = metadata.loc[idx]
     depth = counts.sum(axis=1)
-    pfunc = lambda x: _case_control_func(counts=np.array(x.values),
-                                         case_ctrl_ids=metadata['cc_ids'].values,
-                                         case_member=metadata['groups'].values,
-                                         depth=depth,
-                                         mc_samples=monte_carlo_samples)
-    if cores > 1:
-        try:
-            import dask.dataframe as dd
-            dcounts = dd.from_pandas(counts.T, npartitions=cores)
-            res = dcounts.apply(pfunc, axis=1)
-            resdf = res.compute(scheduler='processes')
-            data_df = list(resdf.values)
-        except:
-            data_df = list(counts.T.apply(pfunc, axis=1).values)
-    else:
-        data_df = list(counts.T.apply(pfunc, axis=1).values)
-    samples = xr.concat([df.to_xarray() for df in data_df], dim="features")
-    samples = samples.assign_coords(coords={
-            'features' : counts.columns,
-            'monte_carlo_samples' : np.arange(monte_carlo_samples)
-    })
+    posterior, prior = _case_control_full(counts=counts.values,
+                                          case_ctrl_ids=metadata['cc_ids'].values,
+                                          case_member=metadata['groups'].values,
+                                          depth=depth,
+                                          mc_samples=monte_carlo_samples)
+    res = az.from_pystan(
+        posterior=posterior,
+        prior=prior,
+        observed_data=['depth', 'y', 'cc_bool', 'cc_ids'],
+        constant_data=['C', 'N', 'D'],
+        coords={'microbes': list(table.columns)}
+    )
     return samples
 
 

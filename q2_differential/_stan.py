@@ -3,6 +3,7 @@ from biom import load_table
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from skbio.stats.composition import clr
 from sklearn.preprocessing import LabelEncoder
 import pickle
 import os
@@ -13,25 +14,29 @@ from cmdstanpy import CmdStanModel
 from sklearn.preprocessing import LabelEncoder
 import tempfile
 import json
+import arviz as az
 
 
-def _case_control_func(counts : np.array, case_ctrl_ids : np.array,
+def _case_control_full(counts : np.array, case_ctrl_ids : np.array,
                        case_member : np.array,
                        depth : int,
                        mc_samples : int=1000) -> dict:
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
+    #initialization for controls
+    init_ctrl = clr(counts[~(case_member).astype(np.bool)] + 1)
 
     # Actual stan modeling
     code = os.path.join(os.path.dirname(__file__),
                         'assets/nb_case_control.stan')
     sm = CmdStanModel(stan_file=code)
     dat = {
-        'N' : len(counts),
+        'N' : counts.shape[0],
+        'D' : counts.shape[1],
         'C' : int(max(case_ids) + 1),
         'depth' : list(np.log(depth)),
-        'y' : list(map(int, counts.astype(np.int64))),
+        'y' : counts.astype(int).tolist(),
         'cc_bool' : list(map(int, case_member)),
         'cc_ids' : list(map(int, case_ids + 1))
     }
@@ -41,22 +46,14 @@ def _case_control_func(counts : np.array, case_ctrl_ids : np.array,
             json.dump(dat, f)
         # see https://mattocci27.github.io/assets/poilog.html
         # for recommended parameters for poisson log normal
-        fit = sm.sample(data=data_path, iter_sampling=mc_samples, chains=4,
-                        iter_warmup=mc_samples // 2,
-                        adapt_delta = 0.9, max_treedepth = 20)
-        fit.diagnose()
-        mu = fit.stan_variable('mu')
-        sigma = fit.stan_variable('sigma')
-        disp = fit.stan_variable('disp')
-        res = pd.DataFrame({
-            'mu': mu,
-            'sigma': sigma,
-            'disp_ctrl': disp[:, 0],
-            'disp_case': disp[:, 1]
-        })
-        # TODO: this doesn't seem to work atm, but its fixed upstream
-        # res = fit.summary()
-        return res
+        prior = sm.sample(data=data_path, iter_sampling=100, chains=4,
+                          iter_warmup=0,
+                          adapt_delta = 0.9, max_treedepth = 20)
+        posterior = sm.sample(data=data_path, iter_sampling=mc_samples, chains=4,
+                              iter_warmup=mc_samples // 2,
+                              adapt_delta = 0.9, max_treedepth = 20)
+        posterior.diagnose()
+        return posterior, prior
 
 
 def _case_control_sim(n=100, d=10, depth=50):
