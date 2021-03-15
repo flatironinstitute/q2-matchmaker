@@ -6,7 +6,8 @@ from q2_differential._stan import (
 class TestCaseControl(unittest.TestCase):
 
     def setUp(self):
-        self.table, self.metadata = _case_control_sim(n=50, d=5, depth=100)
+        self.table, self.metadata, self.diff = _case_control_sim(
+            n=30, d=3, depth=100)
 
     def test_case_control_full(self):
         posterior, prior = _case_control_full(
@@ -14,8 +15,11 @@ class TestCaseControl(unittest.TestCase):
             case_ctrl_ids=self.metadata['reps'].values,
             case_member=self.metadata['diff'].values,
             depth=self.table.sum(axis=1),
+            reference='0',
             mc_samples=200)
-        self.assertEqual(res.shape, (200 * 4, 4))
+        res_diff = posterior.stan_variable('diff')
+        print(self.diff)
+        print(res_diff.mean(0))
 
 # def test():
 #     from q2_differential._stan import (

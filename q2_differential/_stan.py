@@ -20,13 +20,14 @@ import arviz as az
 def _case_control_full(counts : np.array, case_ctrl_ids : np.array,
                        case_member : np.array,
                        depth : int,
+                       reference : str,
                        mc_samples : int=1000) -> dict:
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
     #initialization for controls
-    init_ctrl = clr(counts[~(case_member).astype(np.bool)] + 1)
-
+    idx = ~(case_member==reference).astype(np.bool)
+    init_ctrl = clr(counts[idx] + 1)
     # Actual stan modeling
     code = os.path.join(os.path.dirname(__file__),
                         'assets/nb_case_control.stan')
@@ -51,6 +52,7 @@ def _case_control_full(counts : np.array, case_ctrl_ids : np.array,
                           adapt_delta = 0.9, max_treedepth = 20)
         posterior = sm.sample(data=data_path, iter_sampling=mc_samples, chains=4,
                               iter_warmup=mc_samples // 2,
+                              inits={'control': init_ctrl},
                               adapt_delta = 0.9, max_treedepth = 20)
         posterior.diagnose()
         return posterior, prior
@@ -102,4 +104,5 @@ def _case_control_sim(n=100, d=10, depth=50):
                        'reps': rep_md.astype(np.int64).astype(np.str)},
                       index=sids)
     md.index.name = 'sampleid'
-    return table, md
+    diff = clr(ilr_inv(diff))
+    return table, md, diff
