@@ -18,22 +18,15 @@ import json
 import arviz as az
 
 
-def _case_control_full(counts : np.array, case_ctrl_ids : np.array,
+def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
                        case_member : np.array,
                        depth : int,
-                       reference : str,
-                       mc_samples : int=1000) -> dict:
+                       reference : str):
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
     #initialization for controls
     idx = ~(case_member==reference).astype(np.bool)
-    init_ctrl = alr(multiplicative_replacement(
-        closure(counts[idx])))
-    # Actual stan modeling
-    code = os.path.join(os.path.dirname(__file__),
-                        'assets/nb_case_control.stan')
-    sm = CmdStanModel(stan_file=code)
     dat = {
         'N' : counts.shape[0],
         'D' : counts.shape[1],
@@ -43,6 +36,24 @@ def _case_control_full(counts : np.array, case_ctrl_ids : np.array,
         'cc_bool' : list(map(int, case_member)),
         'cc_ids' : list(map(int, case_ids + 1))
     }
+    return dat
+
+def _case_control_full(counts : np.array, case_ctrl_ids : np.array,
+                       case_member : np.array,
+                       depth : int,
+                       reference : str,
+                       mc_samples : int=1000,
+                       seed : int = None) -> dict:
+    dat = _case_control_data(counts, case_ctrl_ids,
+                             case_member, depth, reference)
+    #initialization for controls
+    idx = ~(case_member==reference).astype(np.bool)
+    init_ctrl = alr(multiplicative_replacement(
+        closure(counts[idx])))
+    # Actual stan modeling
+    code = os.path.join(os.path.dirname(__file__),
+                        'assets/nb_case_control.stan')
+    sm = CmdStanModel(stan_file=code)
     with tempfile.TemporaryDirectory() as temp_dir_name:
         data_path = os.path.join(temp_dir_name, 'data.json')
         with open(data_path, 'w') as f:
@@ -53,10 +64,10 @@ def _case_control_full(counts : np.array, case_ctrl_ids : np.array,
                           iter_warmup=1)
         posterior = sm.sample(data=data_path, iter_sampling=mc_samples,
                               chains=4, iter_warmup=mc_samples // 2,
-                              inits={'control': init_ctrl},
-                              adapt_delta = 0.9, max_treedepth = 20)
+                              inits={'control': init_ctrl}, seed = seed,
+                              adapt_delta = 0.95, max_treedepth = 20)
         posterior.diagnose()
-        return posterior, prior
+        return sm, posterior, prior
 
 
 def _case_control_sim(n=100, d=10, depth=50):
