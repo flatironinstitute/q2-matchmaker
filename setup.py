@@ -39,5 +39,8 @@ setup(name='q2-differential',
       entry_points={
           'qiime2.plugins': ['q2-differential=q2_differential.plugin_setup:plugin']
       },
+      package_data={
+          "q2_differential": ['assets/nb_case_control.stan'],
+      },
       classifiers=classifiers,
 )

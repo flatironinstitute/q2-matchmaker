@@ -1,7 +1,41 @@
 import qiime2
 import numpy as np
+import pandas as pd
 import xarray as xr
 import biom
+from q2_differential._stan import _case_control_full
+
+
+def negative_binomial_case_control(
+        table: pd.DataFrame,
+        matching_ids: qiime2.CategoricalMetadataColumn,
+        groups: qiime2.CategoricalMetadataColumn,
+        monte_carlo_samples: int = 2000,
+        reference_group : str = 'TD',
+        cores : int = 1) -> xr.Dataset:
+
+    metadata = pd.DataFrame({'cc_ids': matching_ids.to_series(),
+                             'groups': groups.to_series()})
+    metadata['groups'] = (metadata['groups'] == reference_group).astype(np.int64)
+
+    # take intersection
+    idx = list(set(metadata.index) & set(table.index))
+    counts = table.loc[idx]
+    metadata = metadata.loc[idx]
+    depth = counts.sum(axis=1)
+    posterior, prior = _case_control_full(counts=counts.values,
+                                          case_ctrl_ids=metadata['cc_ids'].values,
+                                          case_member=metadata['groups'].values,
+                                          depth=depth,
+                                          mc_samples=monte_carlo_samples)
+    res = az.from_pystan(
+        posterior=posterior,
+        prior=prior,
+        observed_data=['depth', 'y', 'cc_bool', 'cc_ids'],
+        constant_data=['C', 'N', 'D'],
+        coords={'microbes': list(table.columns)}
+    )
+    return samples
 
 
 def dirichlet_multinomial(
