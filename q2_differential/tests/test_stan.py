@@ -27,8 +27,7 @@ class TestCaseControl(unittest.TestCase):
                                  reference='0')
         gen = sm.generate_quantities(
             data=dat, mcmc_sample=posterior)
-        gen_table = gen.generated_quantities[0].reshape((50, 4))
-        print(gen_table)
+        gen_table = gen.generated_quantities[0].reshape((50, 4)) + 1
         # refit to see if the parameters can be recovered
         # from the generated data
         _, re_posterior, re_prior = _case_control_full(
@@ -47,7 +46,7 @@ class TestCaseControl(unittest.TestCase):
         for i in range(len(self.diff)):
             self.assertTrue(
                 (rm[i] - 3 * rs[i]) <= exp_diff[i] and
-                (self.diff[i] <= (rm[i] + 3 * rs[i]))
+                (exp_diff[i] <= (rm[i] + 3 * rs[i]))
             )
 
 
