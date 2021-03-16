@@ -3,7 +3,8 @@ from biom import load_table
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from skbio.stats.composition import clr
+from skbio.stats.composition import (clr, closure, alr, alr_inv,
+                                     multiplicative_replacement)
 from sklearn.preprocessing import LabelEncoder
 import pickle
 import os
@@ -27,7 +28,8 @@ def _case_control_full(counts : np.array, case_ctrl_ids : np.array,
     case_ids = case_encoder.transform(case_ctrl_ids)
     #initialization for controls
     idx = ~(case_member==reference).astype(np.bool)
-    init_ctrl = clr(counts[idx] + 1)
+    init_ctrl = alr(multiplicative_replacement(
+        closure(counts[idx])))
     # Actual stan modeling
     code = os.path.join(os.path.dirname(__file__),
                         'assets/nb_case_control.stan')
@@ -48,10 +50,9 @@ def _case_control_full(counts : np.array, case_ctrl_ids : np.array,
         # see https://mattocci27.github.io/assets/poilog.html
         # for recommended parameters for poisson log normal
         prior = sm.sample(data=data_path, iter_sampling=100, chains=4,
-                          iter_warmup=1,
-                          adapt_delta = 0.9, max_treedepth = 20)
-        posterior = sm.sample(data=data_path, iter_sampling=mc_samples, chains=4,
-                              iter_warmup=mc_samples // 2,
+                          iter_warmup=1)
+        posterior = sm.sample(data=data_path, iter_sampling=mc_samples,
+                              chains=4, iter_warmup=mc_samples // 2,
                               inits={'control': init_ctrl},
                               adapt_delta = 0.9, max_treedepth = 20)
         posterior.diagnose()
@@ -89,8 +90,8 @@ def _case_control_sim(n=100, d=10, depth=50):
         N = np.random.poisson(depth)
         r1 = ref + delta
         r2 = r1 + diff
-        p1 = np.random.dirichlet(ilr_inv(r1))
-        p2 = np.random.dirichlet(ilr_inv(r2))
+        p1 = np.random.dirichlet(alr_inv(r1))
+        p2 = np.random.dirichlet(alr_inv(r2))
         diff_md[i] = 0
         diff_md[(n // 2) + i] = 1
         rep_md[i] = i
@@ -104,5 +105,4 @@ def _case_control_sim(n=100, d=10, depth=50):
                        'reps': rep_md.astype(np.int64).astype(np.str)},
                       index=sids)
     md.index.name = 'sampleid'
-    diff = clr(ilr_inv(diff))
     return table, md, diff
