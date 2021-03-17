@@ -3,7 +3,7 @@ from scipy.spatial.distance import pdist, euclidean
 import numpy as np
 
 
-def hotelling_ttest(X : np.array):
+def hotelling_ttest(X : np.array, to_alr=False):
     """ Tests if table is centered around zero.
 
     Parameters
@@ -23,8 +23,11 @@ def hotelling_ttest(X : np.array):
     It is a strict requirement that n > p.
     """
     # convert table to ALR coordinates
-    X_ = X - X[:, 0].reshape(-1, 1)
-    X_ = X_[:, 1:]
+    if to_alr:
+        X_ = X - X[:, 0].reshape(-1, 1)
+        X_ = X_[:, 1:]
+    else:
+        X_ = X
     muX = X_.mean(axis=0)
     nx, p = X_.shape
     if nx < p :
@@ -55,7 +58,7 @@ def spherical_test(X : np.array):
     X_ = X_[:, 1:]
     muX = X_.mean(axis=0)
     dists = pdist(X_)
-    r = np.max(dists)   # radius of sphere
+    r = np.max(dists) / 2   # radius of sphere
     p = np.zeros_like(muX)
     d = euclidean(muX, p)
     return d < r, r, d
