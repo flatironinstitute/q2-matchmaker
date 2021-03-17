@@ -4,7 +4,9 @@ import pandas as pd
 import xarray as xr
 import arviz as az
 import biom
-from q2_differential._stan import _case_control_full, _case_control_data
+from q2_differential._stan import (
+    _case_control_full, _case_control_data,
+    _case_control_single)
 
 
 def negative_binomial_case_control(
@@ -38,6 +40,49 @@ def negative_binomial_case_control(
         'coords': {'diff': list(table.columns[1:])}
     }
     samples = az.from_cmdstanpy(posterior=posterior, prior=prior, **opts)
+    return samples
+
+
+
+def parallel_negative_binomial_case_control(
+        table: pd.DataFrame,
+        matching_ids: qiime2.CategoricalMetadataColumn,
+        groups: qiime2.CategoricalMetadataColumn,
+        monte_carlo_samples: int = 2000,
+        reference_group : str = 'TD',
+        cores : int = 1) -> xr.Dataset:
+
+    metadata = pd.DataFrame({'cc_ids': matching_ids.to_series(),
+                             'groups': groups.to_series()})
+    metadata['groups'] = (metadata['groups'] == reference_group).astype(np.int64)
+
+    # take intersection
+    idx = list(set(metadata.index) & set(table.index))
+    counts = table.loc[idx]
+    metadata = metadata.loc[idx]
+    depth = counts.sum(axis=1)
+    pfunc = lambda x: _case_control_single(
+        counts=np.array(x.values),
+        case_ctrl_ids=metadata['cc_ids'].values,
+        case_member=metadata['groups'].values,
+        depth=depth,
+        mc_samples=monte_carlo_samples)
+    if cores > 1:
+        try:
+            import dask.dataframe as dd
+            dcounts = dd.from_pandas(counts.T, npartitions=cores)
+            res = dcounts.apply(pfunc, axis=1)
+            resdf = res.compute(scheduler='processes')
+            data_df = list(resdf.values)
+        except:
+            data_df = list(counts.T.apply(pfunc, axis=1).values)
+    else:
+        data_df = list(counts.T.apply(pfunc, axis=1).values)
+    samples = xr.concat([df.to_xarray() for df in data_df], dim="features")
+    samples = samples.assign_coords(coords={
+            'features' : counts.columns,
+            'monte_carlo_samples' : np.arange(monte_carlo_samples)
+    })
     return samples
 
 
