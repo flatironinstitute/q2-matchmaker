@@ -2,8 +2,9 @@ import qiime2
 import numpy as np
 import pandas as pd
 import xarray as xr
+import arviz as az
 import biom
-from q2_differential._stan import _case_control_full
+from q2_differential._stan import _case_control_full, _case_control_data
 
 
 def negative_binomial_case_control(
@@ -23,18 +24,20 @@ def negative_binomial_case_control(
     counts = table.loc[idx]
     metadata = metadata.loc[idx]
     depth = counts.sum(axis=1)
-    posterior, prior = _case_control_full(counts=counts.values,
-                                          case_ctrl_ids=metadata['cc_ids'].values,
-                                          case_member=metadata['groups'].values,
-                                          depth=depth,
-                                          mc_samples=monte_carlo_samples)
-    res = az.from_pystan(
-        posterior=posterior,
-        prior=prior,
-        observed_data=['depth', 'y', 'cc_bool', 'cc_ids'],
-        constant_data=['C', 'N', 'D'],
-        coords={'microbes': list(table.columns)}
-    )
+    dat = _case_control_data(counts.values,
+                             metadata['cc_ids'].values,
+                             metadata['groups'].values, depth)
+    _, posterior, prior = _case_control_full(
+        counts=counts.values,
+        case_ctrl_ids=metadata['cc_ids'].values,
+        case_member=metadata['groups'].values,
+        depth=depth,
+        mc_samples=monte_carlo_samples)
+    opts = {
+        'observed_data': dat,
+        'coords': {'diff': list(table.columns[1:])}
+    }
+    samples = az.from_cmdstanpy(posterior=posterior, prior=prior, **opts)
     return samples
 
 
