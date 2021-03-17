@@ -20,13 +20,10 @@ import arviz as az
 
 def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
                        case_member : np.array,
-                       depth : int,
-                       reference : str):
+                       depth : int):
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
-    #initialization for controls
-    idx = ~(case_member==reference).astype(np.bool)
     dat = {
         'N' : counts.shape[0],
         'D' : counts.shape[1],
@@ -38,18 +35,18 @@ def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
     }
     return dat
 
-def _case_control_full(counts : np.array, case_ctrl_ids : np.array,
+
+def _case_control_full(counts : np.array,
+                       case_ctrl_ids : np.array,
                        case_member : np.array,
                        depth : int,
-                       reference : str,
                        mc_samples : int=1000,
                        seed : int = None) -> dict:
     dat = _case_control_data(counts, case_ctrl_ids,
-                             case_member, depth, reference)
+                             case_member, depth)
     #initialization for controls
-    idx = ~(case_member==reference).astype(np.bool)
     init_ctrl = alr(multiplicative_replacement(
-        closure(counts[idx])))
+        closure(counts[~(case_member).astype(np.bool)])))
     # Actual stan modeling
     code = os.path.join(os.path.dirname(__file__),
                         'assets/nb_case_control.stan')
@@ -115,5 +112,5 @@ def _case_control_sim(n=100, d=10, depth=50):
     md = pd.DataFrame({'diff': diff_md.astype(np.int64).astype(np.str),
                        'reps': rep_md.astype(np.int64).astype(np.str)},
                       index=sids)
-    md.index.name = 'sampleid'
+    md.index.name = 'sample id'
     return table, md, diff
