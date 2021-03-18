@@ -6,7 +6,10 @@ from qiime2.plugin import (Str, Properties, Int, Float,  Metadata, Bool,
 from q2_differential import __version__
 from q2_differential._type import FeatureTensor
 from q2_differential._format import FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt
-from q2_differential._method import dirichlet_multinomial, negative_binomial_case_control
+from q2_differential._method import (
+    dirichlet_multinomial, negative_binomial_case_control,
+    parallel_negative_binomial_case_control
+)
 from q2_differential._visualizer import rankplot
 from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.ordination import PCoAResults
@@ -76,6 +79,46 @@ plugin.methods.register_function(
 
 plugin.methods.register_function(
     function=negative_binomial_case_control,
+    inputs={'table': FeatureTable[Frequency]},
+    parameters={
+        'matching_ids': MetadataColumn[Categorical],
+        'groups': MetadataColumn[Categorical],
+        'monte_carlo_samples': Int,
+        'reference_group': Str,
+        'cores': Int
+    },
+    outputs=[
+        ('differentials', FeatureTensor)
+    ],
+    input_descriptions={
+        "table": "Input table of counts.",
+    },
+    output_descriptions={
+        'differentials': ('Output posterior differentials learned from the '
+                          'Negative Binomial model.'),
+    },
+    parameter_descriptions={
+        'matching_ids': ('The matching ids to link case-control samples '),
+        'groups': ('The categorical sample metadata column to test for '
+                     'differential abundance across.'),
+        "monte_carlo_samples": (
+            'Number of monte carlo samples to draw from '
+            'posterior distribution.'
+        ),
+        "reference_group": (
+            'Reference category to compute log-fold change from.'
+        ),
+        "cores" : ('Number of cores to utilize for parallelism.')
+    },
+    name='Negative Binomial Case Control',
+    description=("Fits a Negative Binomial model to estimate "
+                 "biased log-fold change"),
+    citations=[]
+)
+
+
+plugin.methods.register_function(
+    function=parallel_negative_binomial_case_control,
     inputs={'table': FeatureTable[Frequency]},
     parameters={
         'matching_ids': MetadataColumn[Categorical],

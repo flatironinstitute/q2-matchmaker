@@ -1,7 +1,9 @@
 import unittest
 import numpy as np
 from q2_differential._stan import (
-    _case_control_sim, _case_control_full, _case_control_data)
+    _case_control_sim, _case_control_full,
+    _case_control_data, _case_control_single
+)
 
 
 class TestCaseControl(unittest.TestCase):
@@ -50,18 +52,21 @@ class TestCaseControl(unittest.TestCase):
             )
 
 
-# def test():
-#     from q2_differential._stan import (
-#         _case_control_sim, _case_control_full)
-#
-#     table, metadata = _case_control_sim(n=100, d=5, depth=100)
-#     posterior, prior = _case_control_full(
-#         table.values,
-#         case_ctrl_ids=metadata['reps'].values,
-#         case_member=metadata['diff'].values,
-#         depth=table.sum(axis=1),
-#         mc_samples=2000)
-#
+class TestCaseControlSingle(unittest.TestCase):
+
+    def setUp(self):
+        np.random.seed(0)
+        self.table, self.metadata, self.diff = _case_control_sim(
+            n=50, d=4, depth=100)
+
+    def test_cc(self):
+        res = _case_control_single(
+            self.table.values[:, 0],
+            case_ctrl_ids=self.metadata['reps'].values,
+            case_member=self.metadata['diff'].values,
+            depth=self.table.sum(axis=1),
+            mc_samples=2000)
+
 
 if __name__ == '__main__':
     unittest.main()

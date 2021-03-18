@@ -67,6 +67,50 @@ def _case_control_full(counts : np.array,
         return sm, posterior, prior
 
 
+def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
+                         case_member : np.array,
+                         depth : int,
+                         mc_samples : int=1000) -> dict:
+    case_encoder = LabelEncoder()
+    case_encoder.fit(case_ctrl_ids)
+    case_ids = case_encoder.transform(case_ctrl_ids)
+
+    # Actual stan modeling
+    code = os.path.join(os.path.dirname(__file__),
+                        'assets/nb_case_control_single.stan')
+    sm = CmdStanModel(stan_file=code)
+    dat = {
+        'N' : len(counts),
+        'C' : int(max(case_ids) + 1),
+        'depth' : list(np.log(depth)),
+        'y' : list(map(int, counts.astype(np.int64))),
+        'cc_bool' : list(map(int, case_member)),
+        'cc_ids' : list(map(int, case_ids + 1))
+    }
+    with tempfile.TemporaryDirectory() as temp_dir_name:
+        data_path = os.path.join(temp_dir_name, 'data.json')
+        with open(data_path, 'w') as f:
+            json.dump(dat, f)
+        # see https://mattocci27.github.io/assets/poilog.html
+        # for recommended parameters for poisson log normal
+        fit = sm.sample(data=data_path, iter_sampling=mc_samples, chains=4,
+                        iter_warmup=mc_samples // 2,
+                        adapt_delta = 0.9, max_treedepth = 20)
+        fit.diagnose()
+        mu = fit.stan_variable('mu')
+        sigma = fit.stan_variable('sigma')
+        disp = fit.stan_variable('disp')
+        res = pd.DataFrame({
+            'mu': mu,
+            'sigma': sigma,
+            'disp_ctrl': disp[:, 0],
+            'disp_case': disp[:, 1]
+        })
+        # TODO: this doesn't seem to work atm, but its fixed upstream
+        # res = fit.summary()
+        return res
+
+
 def _case_control_sim(n=100, d=10, depth=50):
     """ Simulate case-controls from Multinomial distribution
 

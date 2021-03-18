@@ -5,6 +5,7 @@ import unittest
 
 class TestStats(unittest.TestCase):
     def setUp(self):
+        np.random.seed(1)
         n, p = 100, 50
         self.Xrand = np.random.randn(n, p)
         self.Xreal = np.random.randn(n, p)
@@ -18,9 +19,9 @@ class TestStats(unittest.TestCase):
 
     def test_spherical_test(self):
         ans = spherical_test(self.Xrand)
-        self.assertTrue(ans)
+        self.assertTrue(ans[0])
         ans = spherical_test(self.Xreal)
-        self.assertFalse(ans)
+        self.assertFalse(ans[0])
 
     def test_rank(self):
         rank_test(self.Xrand)
