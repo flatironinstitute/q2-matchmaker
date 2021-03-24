@@ -18,7 +18,7 @@ def _101(tensor : xr.DataArray) -> FeatureTensorNetCDFFormat:
 
 @plugin.register_transformer
 def _102(ff : FeatureTensorNetCDFFormat) -> xr.Dataset:
-    return xr.open_dataarray(str(ff))
+    return xr.open_dataset(str(ff))
 
 
 @plugin.register_transformer

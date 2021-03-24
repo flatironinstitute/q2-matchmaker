@@ -99,10 +99,12 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
         fit.diagnose()
         mu = fit.stan_variable('mu')
         sigma = fit.stan_variable('sigma')
+        diff = fit.stan_variable('diff')
         disp = fit.stan_variable('disp')
         res = pd.DataFrame({
             'mu': mu,
             'sigma': sigma,
+            'diff' : diff,
             'disp_ctrl': disp[:, 0],
             'disp_case': disp[:, 1]
         })
