@@ -25,10 +25,6 @@ model {
   diff ~ normal(mu, sigma);
   control ~ normal(0, 10); // vague normal prior for controls
 
-  for (n in 1:N){
-
-  }
-
   // generating counts
   for (n in 1:N){
     lam = control[cc_ids[n]] + diff * cc_bool[n];
