@@ -42,6 +42,10 @@ parser.add_argument(
 parser.add_argument(
     '--queue', help='Queue to submit job to.', type=str, required=True)
 parser.add_argument(
+    '--local-directory', help='Scratch directory to deposit dask logs.', type=str, required=False,
+    default='/scratch')
+
+parser.add_argument(
     '--output-tensor', help='Output tensor.', type=str, required=True)
 args = parser.parse_args()
 print(args)
@@ -51,8 +55,8 @@ cluster = SLURMCluster(cores=args.cores,
                        walltime=args.walltime,
                        interface=args.interface,
                        nanny=True,
-                       death_timeout='120s',
-                       local_directory='/tmp',
+                       death_timeout='300s',
+                       local_directory=args.local_directory,
                        shebang='#!/usr/bin/env bash',
                        env_extra=["export TBB_CXX_TYPE=gcc"],
                        queue=args.queue)
@@ -61,7 +65,7 @@ cluster.scale(jobs=args.nodes)
 client = Client(cluster)
 print(client)
 client.wait_for_workers(args.nodes)
-time.sleep(15)
+time.sleep(60)
 print(cluster.scheduler.workers)
 table = load_table(args.biom_table)
 counts = pd.DataFrame(np.array(table.matrix_data.todense()).T,
