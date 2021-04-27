@@ -7,7 +7,7 @@ import biom
 from q2_differential._stan import (
     _case_control_full, _case_control_data,
     _case_control_single)
-from q2_differential._matching import matchmaker
+from q2_differential._matching import _matchmaker
 from typing import List
 
 
@@ -152,7 +152,7 @@ def matching(sample_metadata : qiime2.Metadata,
     columns = [sample_metadata.get_column(col) for col in match_columns]
     types = [isinstance(m, qiime2.CategoricalMetadataColumn) for m in columns]
     sample_metadata = sample_metadata.to_dataframe()
-    match_ids = matchmaker(sample_metadata, status, match_columns, types)
+    match_ids = _matchmaker(sample_metadata, status, match_columns, types)
     new_metadata = sample_metadata.copy()
     new_metadata[matching_column] = match_ids
     # drop any nans that may appear due to lack of matching
