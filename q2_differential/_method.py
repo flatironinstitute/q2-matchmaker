@@ -147,19 +147,19 @@ def dirichlet_multinomial(
 def matching(sample_metadata : qiime2.Metadata,
              status : str,
              match_columns : List[str],
-             matching_column = 'matching_id',
              prefix : str = None) -> qiime2.Metadata:
+    new_column = 'matching_id'
     columns = [sample_metadata.get_column(col) for col in match_columns]
     types = [isinstance(m, qiime2.CategoricalMetadataColumn) for m in columns]
     sample_metadata = sample_metadata.to_dataframe()
     match_ids = _matchmaker(sample_metadata, status, match_columns, types)
     new_metadata = sample_metadata.copy()
-    new_metadata[matching_column] = match_ids
+    new_metadata[new_column] = match_ids
     # drop any nans that may appear due to lack of matching
-    new_metadata = new_metadata.dropna(subset=[matching_column])
-    new_metadata[matching_column] = new_metadata[matching_column].astype(
+    new_metadata = new_metadata.dropna(subset=[new_column])
+    new_metadata[new_column] = new_metadata[new_column].astype(
         np.int64).astype(str)
     if prefix is not None:
-        new_metadata[matching_column] = new_metadata[matching_column].apply(
+        new_metadata[new_column] = new_metadata[new_column].apply(
             lambda x: f'{prefix}_{x}')
     return qiime2.Metadata(new_metadata)

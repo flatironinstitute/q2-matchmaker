@@ -1,14 +1,17 @@
 import importlib
 import qiime2.plugin
 import qiime2.sdk
-from qiime2.plugin import (Str, Properties, Int, Float,  Metadata, Bool,
+from qiime2.plugin import (Str, Properties, Int, Float,  Metadata, Bool, List,
                            MetadataColumn, Categorical)
 from q2_differential import __version__
-from q2_differential._type import FeatureTensor
-from q2_differential._format import FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt
+from q2_differential._type import FeatureTensor, Matching
+from q2_differential._format import (
+    FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt,
+    MatchingFormat, MatchingDirectoryFormat
+)
 from q2_differential._method import (
     dirichlet_multinomial, negative_binomial_case_control,
-    parallel_negative_binomial_case_control
+    parallel_negative_binomial_case_control, matching
 )
 from q2_differential._visualizer import rankplot
 from q2_types.feature_table import FeatureTable, Frequency
@@ -157,6 +160,37 @@ plugin.methods.register_function(
 )
 
 
+plugin.methods.register_function(
+    function=matching,
+    inputs={},
+    parameters={
+        'sample_metadata': qiime2.plugin.Metadata,
+        'status' : Str,
+        'match_columns' : List[Str],
+        'prefix': Str
+    },
+    outputs=[
+        ('matched_metadata', SampleData[Matching])
+    ],
+    input_descriptions={
+    },
+    output_descriptions={
+        "matched_metadata": ("Modified metadata with matching ids.")
+    },
+    parameter_descriptions={
+        "sample_metadata": ("Information about the metadata that allows for "
+                            "case-control matching across confounders "
+                            "such as age, sex and household."),
+        'status': ('The experimental condition to be investigated.'),
+        'match_columns': ('The confounder covariates to match on.'),
+        'prefix': ('A prefix to add to the matching ids'),
+    },
+    name='Matching',
+    description=("Creates matching ids to enable case-control matching."),
+    citations=[]
+)
+
+
 plugin.visualizers.register_function(
     function=rankplot,
     inputs={'differentials': FeatureTensor},
@@ -169,9 +203,12 @@ plugin.visualizers.register_function(
 )
 
 
-plugin.register_formats(FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt)
-plugin.register_semantic_types(FeatureTensor)
+plugin.register_formats(FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt,
+                        MatchingFormat, MatchingDirectoryFormat)
+plugin.register_semantic_types(FeatureTensor, Matching)
 plugin.register_semantic_type_to_format(
     FeatureTensor, FeatureTensorNetCDFDirFmt)
+plugin.register_semantic_type_to_format(
+    Matching, MatchingDirectoryFormat)
 
 importlib.import_module('q2_differential._transformer')
