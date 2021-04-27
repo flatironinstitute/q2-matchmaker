@@ -7,6 +7,8 @@ import biom
 from q2_differential._stan import (
     _case_control_full, _case_control_data,
     _case_control_single)
+from q2_differential._matching import matchmaker
+from typing import List
 
 
 def negative_binomial_case_control(
@@ -41,7 +43,6 @@ def negative_binomial_case_control(
     }
     samples = az.from_cmdstanpy(posterior=posterior, prior=prior, **opts)
     return samples
-
 
 
 def parallel_negative_binomial_case_control(
@@ -141,3 +142,24 @@ def dirichlet_multinomial(
         )
     )
     return samples
+
+
+def matching(sample_metadata : qiime2.Metadata,
+             status : str,
+             match_columns : List[str],
+             matching_column = 'matching_id',
+             prefix : str = None) -> qiime2.Metadata:
+    columns = [sample_metadata.get_column(col) for col in match_columns]
+    types = [isinstance(m, qiime2.CategoricalMetadataColumn) for m in columns]
+    sample_metadata = sample_metadata.to_dataframe()
+    match_ids = matchmaker(sample_metadata, status, match_columns, types)
+    new_metadata = sample_metadata.copy()
+    new_metadata[matching_column] = match_ids
+    # drop any nans that may appear due to lack of matching
+    new_metadata = new_metadata.dropna(subset=[matching_column])
+    new_metadata[matching_column] = new_metadata[matching_column].astype(
+        np.int64)
+    if prefix is not None:
+        new_metadata[matching_column] = new_metadata[matching_column].apply(
+            lambda x: f'{prefix}_{x}')
+    return qiime2.Metadata(new_metadata)
