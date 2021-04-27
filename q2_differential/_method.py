@@ -158,7 +158,7 @@ def matching(sample_metadata : qiime2.Metadata,
     # drop any nans that may appear due to lack of matching
     new_metadata = new_metadata.dropna(subset=[matching_column])
     new_metadata[matching_column] = new_metadata[matching_column].astype(
-        np.int64)
+        np.int64).astype(str)
     if prefix is not None:
         new_metadata[matching_column] = new_metadata[matching_column].apply(
             lambda x: f'{prefix}_{x}')

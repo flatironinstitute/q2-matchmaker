@@ -54,7 +54,7 @@ class TestMatching(unittest.TestCase):
         matched_metadata = matched_metadata.to_dataframe()
         pdt.assert_series_equal(
             matched_metadata['matching_id'],
-            pd.Series([0., 0., 1., 1., 2., 2., 3., 3.],
+            pd.Series(['0', '0', '1', '1', '2', '2', '3', '3'],
                       index=self.index, name='matching_id')
         )
 
@@ -101,7 +101,7 @@ class TestMatching(unittest.TestCase):
                          name='sampleid')
         pdt.assert_series_equal(
             matched_metadata['matching_id'],
-            pd.Series([0., 0., 1., 1., 2., 2., 3., 3.],
+            pd.Series(['0', '0', '1', '1', '2', '2', '3', '3'],
                       index=index, name='matching_id')
         )
 
