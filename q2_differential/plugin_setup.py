@@ -11,7 +11,8 @@ from q2_differential._format import (
 )
 from q2_differential._method import (
     dirichlet_multinomial, negative_binomial_case_control,
-    parallel_negative_binomial_case_control, matching
+    parallel_negative_binomial_case_control,
+    slurm_negative_binomial_case_control, matching
 )
 from q2_differential._visualizer import rankplot
 from q2_types.feature_table import FeatureTable, Frequency
@@ -113,7 +114,7 @@ plugin.methods.register_function(
         ),
         "cores" : ('Number of cores to utilize for parallelism.')
     },
-    name='Negative Binomial Case Control',
+    name='Negative Binomial Case Control Estimation',
     description=("Fits a Negative Binomial model to estimate "
                  "biased log-fold change"),
     citations=[]
@@ -153,7 +154,7 @@ plugin.methods.register_function(
         ),
         "cores" : ('Number of cores to utilize for parallelism.')
     },
-    name='Negative Binomial Case Control',
+    name='Negative Binomial Case Contro Parallel Estimation',
     description=("Fits a Negative Binomial model to estimate "
                  "biased log-fold change"),
     citations=[]
@@ -189,7 +190,6 @@ plugin.methods.register_function(
     description=("Creates matching ids to enable case-control matching."),
     citations=[]
 )
-
 
 plugin.visualizers.register_function(
     function=rankplot,

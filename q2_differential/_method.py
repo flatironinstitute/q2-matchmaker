@@ -87,6 +87,63 @@ def parallel_negative_binomial_case_control(
     return samples
 
 
+def slurm_negative_binomial_case_control(
+        table: pd.DataFrame,
+        matching_ids: qiime2.CategoricalMetadataColumn,
+        groups: qiime2.CategoricalMetadataColumn,
+        reference_group : str,
+        monte_carlo_samples: int = 2000,
+        cores : int = 4,
+        processes : int = 4,
+        nodes : int = 2,
+        memory : str = '16GB',
+        walltime : str = '01:00:00',
+        queue : str = '') -> xr.Dataset:
+    import dask
+    from dask_jobqueue import SLURMCluster
+    from dask.distributed import Client
+    import dask.array as da
+    import logging
+    logging.basicConfig(format='%(levelname)s:%(message)s',
+                        level=logging.DEBUG)
+    cluster = SLURMCluster(cores=cores,
+                           processes=processes,
+                           memory=memory,
+                           walltime=walltime,
+                           interface='ib0',
+                           env_extra=["export TBB_CXX_TYPE=gcc"],
+                           queue=queue)
+    cluster.scale(jobs=nodes)
+
+    metadata = pd.DataFrame({'cc_ids': matching_ids.to_series(),
+                             'groups': groups.to_series()})
+    metadata['groups'] = (metadata['groups'] == reference_group).astype(np.int64)
+
+    # take intersection
+    idx = list(set(metadata.index) & set(table.index))
+    counts = table.loc[idx]
+    metadata = metadata.loc[idx]
+    depth = counts.sum(axis=1)
+    pfunc = lambda x: _case_control_single(
+        x, case_ctrl_ids=metadata['cc_ids'],
+        case_member=metadata['groups'],
+        depth=depth, mc_samples=monte_carlo_samples)
+    dcounts = da.from_array(counts.values.T, chunks=(counts.T.shape))
+    res = []
+    for d in range(dcounts.shape[0]):
+        r = dask.delayed(pfunc)(dcounts[d])
+        res.append(r)
+    futures = dask.persist(*res)
+    resdf = dask.compute(futures)
+    data_df = list(resdf[0])
+    samples = xr.concat([df.to_xarray() for df in data_df], dim="features")
+    samples = samples.assign_coords(coords={
+            'features' : counts.columns,
+            'monte_carlo_samples' : np.arange(monte_carlo_samples)
+    })
+    return samples
+
+
 def dirichlet_multinomial(
         table: biom.Table,
         groups: qiime2.CategoricalMetadataColumn,

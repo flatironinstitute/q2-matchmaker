@@ -20,7 +20,6 @@ class TestCaseControl(unittest.TestCase):
             case_ctrl_ids=self.metadata['reps'].values,
             case_member=self.metadata['diff'].values,
             depth=self.table.sum(axis=1),
-            reference='0',
             mc_samples=100)
         dat = _case_control_data(self.table.values,
                                  case_ctrl_ids=self.metadata['reps'].values,

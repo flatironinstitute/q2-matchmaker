@@ -70,7 +70,8 @@ def _case_control_full(counts : np.array,
 def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                          case_member : np.array,
                          depth : int,
-                         mc_samples : int=1000) -> dict:
+                         mc_samples : int=1000,
+                         chains : int=1) -> dict:
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
@@ -93,8 +94,8 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
             json.dump(dat, f)
         # see https://mattocci27.github.io/assets/poilog.html
         # for recommended parameters for poisson log normal
-        fit = sm.sample(data=data_path, iter_sampling=mc_samples, chains=4,
-                        iter_warmup=mc_samples // 2,
+        fit = sm.sample(data=data_path, iter_sampling=mc_samples,
+                        chains=chains, iter_warmup=mc_samples // 2,
                         adapt_delta = 0.9, max_treedepth = 20)
         fit.diagnose()
         mu = fit.stan_variable('mu')

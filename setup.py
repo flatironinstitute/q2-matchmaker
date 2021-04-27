@@ -42,5 +42,6 @@ setup(name='q2-differential',
       package_data={
           "q2_differential": ['assets/nb_case_control.stan'],
       },
+      scripts=glob('scripts/*'),
       classifiers=classifiers,
 )
