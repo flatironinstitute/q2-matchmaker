@@ -2,7 +2,8 @@ import unittest
 import qiime2
 from q2_differential._method import (
     dirichlet_multinomial, negative_binomial_case_control,
-    parallel_negative_binomial_case_control)
+    parallel_negative_binomial_case_control,
+    matching)
 from q2_differential._stan import (
     _case_control_sim, _case_control_full, _case_control_data)
 from skbio.stats.composition import clr_inv
@@ -12,6 +13,8 @@ import pandas as pd
 import xarray as xr
 import arviz as az
 from scipy.stats import pearsonr
+import pandas.util.testing as pdt
+import qiime2
 
 
 def sim_multinomial(N, D, C, depth=1000):
@@ -26,6 +29,81 @@ def sim_multinomial(N, D, C, depth=1000):
         n = np.random.poisson(depth)
         counts[i] = np.random.multinomial(n, p)
     return counts, groups, differentials
+
+class TestMatching(unittest.TestCase):
+    def setUp(self):
+        self.index = pd.Index(['a1', 'a2', 'a3', 'a4', 'b1', 'b2', 'b3', 'b4'],
+                              name='sampleid')
+        self.metadata = qiime2.Metadata(pd.DataFrame(
+            [
+                ['male', 6, 'ASD'],
+                ['male', 6, 'Control'],
+                ['female', 6, 'ASD'],
+                ['female', 6, 'Control'],
+                ['male', 7, 'ASD'],
+                ['male', 7, 'Control'],
+                ['female', 8, 'ASD'],
+                ['female', 8, 'Control'],
+            ],
+            index=self.index,
+            columns=['Sex', 'Age', 'Diagnosis']
+        ))
+
+    def test_matching(self):
+        matched_metadata = matching(self.metadata, 'Diagnosis', ['Age', 'Sex'])
+        matched_metadata = matched_metadata.to_dataframe()
+        pdt.assert_series_equal(
+            matched_metadata['matching_id'],
+            pd.Series(['0', '0', '1', '1', '2', '2', '3', '3'],
+                      index=self.index, name='matching_id')
+        )
+
+    def test_matching_prefix(self):
+        matched_metadata = matching(
+            self.metadata, 'Diagnosis', ['Age', 'Sex'], prefix='cool')
+        matched_metadata = matched_metadata.to_dataframe()
+        pdt.assert_series_equal(
+            matched_metadata['matching_id'],
+            pd.Series(['cool_0', 'cool_0',
+                       'cool_1', 'cool_1',
+                       'cool_2', 'cool_2',
+                       'cool_3', 'cool_3'],
+                      index=self.index, name='matching_id')
+        )
+
+    def test_matching_nans(self):
+        self.index = pd.Index(['a1', 'a2', 'a3', 'a4',
+                               'b1', 'b2', 'b3', 'b4', 'b5'],
+                              name='sampleid')
+
+        metadata = qiime2.Metadata(pd.DataFrame(
+            [
+                ['male', 6, 'ASD'],
+                ['male', 6, 'Control'],
+                ['female', 6, 'ASD'],
+                ['female', 6, 'Control'],
+                ['male', 7, 'ASD'],
+                ['male', 7, 'Control'],
+                ['female', 8, 'ASD'],
+                ['female', 8, 'Control'],
+                ['female', 10, 'Control'],
+            ],
+            index=self.index,
+            columns=['Sex', 'Age', 'Diagnosis']
+        ))
+
+        matched_metadata = matching(
+            self.metadata, 'Diagnosis', ['Age', 'Sex'])
+        matched_metadata = matched_metadata.to_dataframe()
+
+        index = pd.Index(['a1', 'a2', 'a3', 'a4',
+                          'b1', 'b2', 'b3', 'b4'],
+                         name='sampleid')
+        pdt.assert_series_equal(
+            matched_metadata['matching_id'],
+            pd.Series(['0', '0', '1', '1', '2', '2', '3', '3'],
+                      index=index, name='matching_id')
+        )
 
 
 class TestDirichiletMultinomial(unittest.TestCase):

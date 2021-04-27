@@ -9,3 +9,6 @@ FeatureTensor = SemanticType('FeatureTensor')
 # differential stats summarizing training / testing error
 # DifferentialStats = SemanticType('DifferentialStats',
 #                                  variant_of=SampleData.field['type'])
+
+Matching = SemanticType('Matching',
+                        variant_of=SampleData.field['type'])

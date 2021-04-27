@@ -18,6 +18,15 @@ FeatureTensorNetCDFDirFmt = model.SingleFileDirectoryFormat(
     'FeatureTensorNetCDFDirFmt', 'feature-tensor.nc', FeatureTensorNetCDFFormat)
 
 
+class MatchingFormat(model.TextFileFormat):
+    def validate(*args):
+        pass
+
+
+MatchingDirectoryFormat = model.SingleFileDirectoryFormat(
+    'MatchingDirectoryFormat', 'matching.tsv',
+    MatchingFormat)
+
 
 # class DifferentialStatsFormat(model.TextFileFormat):
 #     def validate(*args):
