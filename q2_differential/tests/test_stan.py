@@ -11,9 +11,7 @@ import arviz as az
 
 try:
     from dask_jobqueue import SLURMCluster
-    from dask.distributed import Client
     import dask
-    import dask.array as da
     no_dask = False
 except:
     no_dask = True
@@ -85,7 +83,7 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
     def setUp(self):
         np.random.seed(0)
         self.table, self.metadata, self.diff = _case_control_sim(
-            n=50, d=4, depth=100)
+            n=200, d=50, depth=100)
 
     def test_cc(self):
         biom_table = Table(self.table.values.T,
@@ -123,14 +121,14 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
         biom_table = Table(self.table.values.T,
                            list(self.table.columns),
                            list(self.table.index))
-        cluster = SLURMCluster(cores=4,
-                               processes=4,
+        cluster = SLURMCluster(cores=5,
+                               processes=5,
                                memory='16GB',
                                walltime='01:00:00',
                                interface='ib0',
                                nanny=True,
                                death_timeout='300s',
-                               local_directory=args.local_directory,
+                               local_directory='/scratch',
                                shebang='#!/usr/bin/env bash',
                                env_extra=["export TBB_CXX_TYPE=gcc"],
                                queue='ccb')
@@ -141,10 +139,10 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
             status_column="diff",
             metadata=self.metadata,
             reference_status='1',
-            chains=4,
+            chains=1,
             seed=42)
         nb.compile_model()
-        nb.fit_model()
+        nb.fit_model(dask_cluster=cluster)
         inf = nb.to_inference_object()
         loo = az.loo(inf)
         bfmi = az.bfmi(inf)

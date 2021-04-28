@@ -14,11 +14,13 @@ import pickle
 from cmdstanpy import CmdStanModel
 from sklearn.preprocessing import LabelEncoder
 import dask_jobqueue
+from dask.distributed import Client
 import tempfile
 import json
 import arviz as az
 import biom
 import dask
+import time
 
 # Birdman dependencies
 # TODO: get rid of these once have finalized merging BaseModel
@@ -288,7 +290,12 @@ class BaseModel:
             sampler_args = dict()
 
         if dask_cluster is not None:
+            print(dask_cluster.job_script())
             dask_cluster.scale(jobs=jobs)
+            client = Client(dask_cluster)
+            print(client)
+            client.wait_for_workers(jobs)
+            time.sleep(60)
 
         @dask.delayed
         def _fit_single(self, values):
