@@ -7,7 +7,7 @@ from biom import load_table
 import pandas as pd
 import numpy as np
 import xarray as xr
-from q2_differential._stan import _case_control_single
+from q2_differential._stan import NegativeBinomialCaseControl
 import time
 import logging
 
@@ -75,39 +75,39 @@ print(client)
 client.wait_for_workers(args.nodes)
 time.sleep(60)
 print(cluster.scheduler.workers)
+# load relevant files
 table = load_table(args.biom_table)
-counts = pd.DataFrame(np.array(table.matrix_data.todense()).T,
-                      index=table.ids(),
-                      columns=table.ids(axis='observation'))
-metadata = pd.read_table(args.metadata_file, index_col=0)
-matching_ids = metadata[args.matching_ids]
-groups = metadata[args.groups]
-metadata = pd.DataFrame({'cc_ids': matching_ids,
-                         'groups': groups})
-metadata['groups'] = (metadata['groups'] == args.reference_group).astype(np.int64)
+metadata = pd.read_table(args.metadata, index_col=0)
+metadata = metadata.loc[table.ids()]
 
-# take intersection
-idx = list(set(metadata.index) & set(counts.index))
-counts = counts.loc[idx]
-metadata = metadata.loc[idx]
-depth = counts.sum(axis=1)
-pfunc = lambda x: _case_control_single(
-    x, case_ctrl_ids=metadata['cc_ids'],
-    case_member=metadata['groups'],
-    depth=depth, mc_samples=args.monte_carlo_samples)
-dcounts = da.from_array(counts.values.T, chunks=(counts.T.shape))
-print('Dimensions', counts.shape, dcounts.shape, len(counts.columns))
+nb = NegativeBinomialCaseControl(
+            table=biom_table,
+            matching_column=args.matching_ids,
+            status_column=args.groups,
+            metadata=metadata,
+            reference_status=args.reference_group,
+            chains=args.chains)
+nb.compile_model()
+nb.fit_model()
+inf = nb.to_inference_object()
 
-res = []
-for d in range(dcounts.shape[0]):
-    r = dask.delayed(pfunc)(dcounts[d])
-    res.append(r)
-print('Res length', len(res))
-futures = dask.persist(*res)
-resdf = dask.compute(futures)
-data_df = list(resdf[0])
-samples = xr.concat([df.to_xarray() for df in data_df], dim="features")
-samples = samples.assign_coords(coords={
-    'features' : table.ids(axis='observation'),
-    'monte_carlo_samples' : np.arange(args.monte_carlo_samples)})
-samples.to_netcdf(args.output_tensor)
+# Get summary statistics
+loo = az.loo(inf)
+bfmi = az.bfmi(inf)
+rhat = az.rhat(inf, var_names=nb.param_names)
+ess = az.ess(inf, var_names=nb.param_names)
+r2 = r2_score(inf)
+summary_stats = loo
+summary_stats.loc['bfmi'] = [bfmi.mean().values, bfmi.std().values]
+summary_stats.loc['r2'] = r2.values
+
+# Save files to output directory
+os.mkdir(args.output_directory)
+posterior_file = os.path.join(args.output_directory,
+                              'differential_posterior.nc')
+summary_file = os.path.join(args.output_directory,
+                            'summary_statistics.nc')
+rhat_file = os.path.join(args.output_directory, 'rhat.nc')
+samples.to_netcdf(posterior_file)
+summary_stats.to_netcdf(summary_file)
+rhat.to_netcdf(rhat_file)

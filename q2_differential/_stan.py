@@ -28,6 +28,7 @@ from birdman.model_util import (single_fit_to_inference,
 from cmdstanpy import CmdStanModel, CmdStanMCMC
 from typing import List, Sequence
 
+
 def _case_control_sim(n=100, d=10, depth=50):
     """ Simulate case-controls from Multinomial distribution
 
@@ -491,6 +492,7 @@ class NegativeBinomialCaseControl(BaseModel):
         case_encoder.fit(case_ctrl_ids)
         case_ids = case_encoder.transform(case_ctrl_ids)
         self.status_names = metadata[status_column].value_counts().index
+        self.param_names = ["mu", "sigma", "disp", "diff", "control"]
         self.dat = {
             "y": table.matrix_data.todense().T.astype(int),
             "D": table.shape[0],                 # number of features
@@ -547,7 +549,7 @@ class NegativeBinomialCaseControl(BaseModel):
         args["jobs"] = jobs
 
         inf = super().to_inference_object(
-            params=["mu", "sigma", "disp", "diff", "control"],
+            params=self.param_names,
             dims=dims,
             coords=coords,
             posterior_predictive="y_predict",
