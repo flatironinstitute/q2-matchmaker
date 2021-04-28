@@ -23,30 +23,38 @@ parser.add_argument(
 parser.add_argument(
     '--groups', help='Column specifying groups.', required=True)
 parser.add_argument(
-    '--reference-group', help='The name of the reference group.', required=True)
+    '--reference-group', help='The name of the reference group.',
+    required=True)
 parser.add_argument(
     '--monte-carlo-samples', help='Number of monte carlo samples.',
     type=int, required=False, default=1000)
 parser.add_argument(
-    '--cores', help='Number of cores per process.', type=int, required=False, default=1)
+    '--cores', help='Number of cores per process.',
+    type=int, required=False, default=1)
 parser.add_argument(
-    '--processes', help='Number of processes per node.', type=int, required=False, default=1)
+    '--processes', help='Number of processes per node.',
+    type=int, required=False, default=1)
 parser.add_argument(
-    '--nodes', help='Number of nodes.', type=int, required=False, default=1)
+    '--nodes', help='Number of nodes.',
+    type=int, required=False, default=1)
 parser.add_argument(
-    '--memory', help='Memory allocation size.', type=str, required=False, default='16GB')
+    '--memory', help='Memory allocation size.',
+    type=str, required=False, default='16GB')
 parser.add_argument(
-    '--walltime', help='Walltime.', type=str, required=False, default='01:00:00')
+    '--walltime', help='Walltime.', type=str,
+    required=False, default='01:00:00')
 parser.add_argument(
-    '--interface', help='Interface for communication', type=str, required=False, default='eth0')
+    '--interface', help='Interface for communication',
+    type=str, required=False, default='eth0')
 parser.add_argument(
     '--queue', help='Queue to submit job to.', type=str, required=True)
 parser.add_argument(
-    '--local-directory', help='Scratch directory to deposit dask logs.', type=str, required=False,
-    default='/scratch')
-
+    '--local-directory', help='Scratch directory to deposit dask logs.',
+    type=str, required=False, default='/scratch')
 parser.add_argument(
-    '--output-tensor', help='Output tensor.', type=str, required=True)
+    '--output-directory',
+    help='Output directory of differential tensor and diagnosis stats.',
+    type=str, required=True)
 args = parser.parse_args()
 print(args)
 cluster = SLURMCluster(cores=args.cores,

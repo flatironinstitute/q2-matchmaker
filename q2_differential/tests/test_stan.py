@@ -2,8 +2,10 @@ import unittest
 import numpy as np
 from q2_differential._stan import (
     _case_control_sim, _case_control_full,
-    _case_control_data, _case_control_single
+    _case_control_data, _case_control_single,
+    NegativeBinomialCaseControl
 )
+from biom import Table
 
 
 class TestCaseControl(unittest.TestCase):
@@ -65,6 +67,30 @@ class TestCaseControlSingle(unittest.TestCase):
             case_member=self.metadata['diff'].values,
             depth=self.table.sum(axis=1),
             mc_samples=2000)
+
+
+class TestNegativeBinomialCaseControl(unittest.TestCase):
+
+    def setUp(self):
+        np.random.seed(0)
+        self.table, self.metadata, self.diff = _case_control_sim(
+            n=50, d=4, depth=100)
+
+    def test_cc(self):
+        biom_table = Table(self.table.values.T,
+                           list(self.table.columns),
+                           list(self.table.index))
+
+        nb = NegativeBinomialCaseControl(
+            table=biom_table,
+            matching_column="reps",
+            status_column="diff",
+            metadata=self.metadata,
+            reference_status='1',
+            chains=4,
+            seed=42)
+        nb.compile_model()
+        nb.fit_model()
 
 
 if __name__ == '__main__':
