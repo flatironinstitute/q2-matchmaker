@@ -8,6 +8,7 @@ from q2_differential._type import FeatureTensor, Matching
 from q2_differential._format import (
     FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt,
     MatchingFormat, MatchingDirectoryFormat
+    # DifferentialStatsFormat, DifferentialStatsDirectoryFormat
 )
 from q2_differential._method import (
     dirichlet_multinomial, negative_binomial_case_control,

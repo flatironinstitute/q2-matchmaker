@@ -53,3 +53,15 @@ def _107(obj: qiime2.Metadata) -> MatchingFormat:
     ff = MatchingFormat()
     obj.save(str(ff))
     return ff
+
+
+# @plugin.register_transformer
+# def _108(ff: DifferentialStatsFormat) -> qiime2.Metadata:
+#     return qiime2.Metadata.load(str(ff))
+#
+#
+# @plugin.register_transformer
+# def _109(obj: qiime2.Metadata) -> DifferentialStatsFormat:
+#     ff = DifferentialStatsFormat()
+#     obj.save(str(ff))
+#     return ff
