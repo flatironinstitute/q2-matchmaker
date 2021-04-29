@@ -15,7 +15,9 @@ from cmdstanpy import CmdStanModel
 from sklearn.preprocessing import LabelEncoder
 import tempfile
 import json
+import dask
 import arviz as az
+import xarray as xr
 
 
 def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
@@ -98,20 +100,26 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                         chains=chains, iter_warmup=mc_samples // 2,
                         adapt_delta = 0.9, max_treedepth = 20)
         fit.diagnose()
-        mu = fit.stan_variable('mu')
-        sigma = fit.stan_variable('sigma')
-        diff = fit.stan_variable('diff')
-        disp = fit.stan_variable('disp')
-        res = pd.DataFrame({
-            'mu': mu,
-            'sigma': sigma,
-            'diff' : diff,
-            'disp_ctrl': disp[:, 0],
-            'disp_case': disp[:, 1]
-        })
+        inf = az.from_cmdstanpy(fit,
+                                posterior_predictive='y_predict',
+                                log_likelihood='log_lhood',
+        )
+        #
+        #
+        # mu = fit.stan_variable('mu')
+        # sigma = fit.stan_variable('sigma')
+        # diff = fit.stan_variable('diff')
+        # disp = fit.stan_variable('disp')
+        # res = pd.DataFrame({
+        #     'mu': mu,
+        #     'sigma': sigma,
+        #     'diff' : diff,
+        #     'disp_ctrl': disp[:, 0],
+        #     'disp_case': disp[:, 1]
+        # })
         # TODO: this doesn't seem to work atm, but its fixed upstream
         # res = fit.summary()
-        return res
+        return inf
 
 
 def _case_control_sim(n=100, d=10, depth=50):
@@ -161,3 +169,41 @@ def _case_control_sim(n=100, d=10, depth=50):
                       index=sids)
     md.index.name = 'sample id'
     return table, md, diff
+
+
+
+def merge_inferences(inf_list, log_likelihood, posterior_predictive,
+                     coords, concatenation_name='features'):
+    group_list = []
+    group_list.append(dask.persist(*[x.posterior for x in inf_list]))
+    group_list.append(dask.persist(*[x.sample_stats for x in inf_list]))
+    if log_likelihood is not None:
+        group_list.append(dask.persist(*[x.log_likelihood for x in inf_list]))
+    if posterior_predictive is not None:
+        group_list.append(
+            dask.persist(*[x.posterior_predictive for x in inf_list])
+        )
+
+    group_list = dask.compute(*group_list)
+    po_ds = xr.concat(group_list[0], concatenation_name)
+    ss_ds = xr.concat(group_list[1], concatenation_name)
+    group_dict = {"posterior": po_ds, "sample_stats": ss_ds}
+
+    if log_likelihood is not None:
+        ll_ds = xr.concat(group_list[2], concatenation_name)
+        group_dict["log_likelihood"] = ll_ds
+    if posterior_predictive is not None:
+        pp_ds = xr.concat(group_list[3], concatenation_name)
+        group_dict["posterior_predictive"] = pp_ds
+
+    all_group_inferences = []
+    for group in group_dict:
+        # Set concatenation dim coords
+        group_ds = group_dict[group].assign_coords(
+            {concatenation_name: coords[concatenation_name]}
+        )
+
+        group_inf = az.InferenceData(**{group: group_ds})  # hacky
+        all_group_inferences.append(group_inf)
+
+    return az.concat(*all_group_inferences)

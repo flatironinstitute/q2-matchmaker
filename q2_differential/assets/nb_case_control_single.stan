@@ -32,3 +32,15 @@ model {
                                       disp[cc_bool[n] + 1]);
   }
 }
+
+generated quantities {
+  vector[N] y_predict;
+  vector[N] log_lhood;
+  for (n in 1:N){
+    real lam = control[cc_ids[n]] + diff * cc_bool[n];
+    real m = lam + depth[n];
+    real s = disp[cc_bool[n] + 1];
+    y_predict[n] = neg_binomial_2_log_rng(m, s);
+    log_lhood[n] = neg_binomial_2_log_lpmf(y[n] | m, s);
+  }
+}

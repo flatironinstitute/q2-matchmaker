@@ -11,6 +11,9 @@ from q2_differential._stan import _case_control_single
 import time
 import logging
 
+import arviz as az
+
+
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 parser = argparse.ArgumentParser()
@@ -46,7 +49,9 @@ parser.add_argument(
     default='/scratch')
 
 parser.add_argument(
-    '--output-tensor', help='Output tensor.', type=str, required=True)
+    '--output-directory', help=('Output directory to store posterior distributions '
+                                ' and diagnostics.'),
+    type=str, required=True)
 args = parser.parse_args()
 print(args)
 cluster = SLURMCluster(cores=args.cores,
@@ -88,18 +93,40 @@ pfunc = lambda x: _case_control_single(
     case_member=metadata['groups'],
     depth=depth, mc_samples=args.monte_carlo_samples)
 dcounts = da.from_array(counts.values.T, chunks=(counts.T.shape))
-print('Dimensions', counts.shape, dcounts.shape, len(counts.columns))
 
 res = []
 for d in range(dcounts.shape[0]):
     r = dask.delayed(pfunc)(dcounts[d])
     res.append(r)
-print('Res length', len(res))
+# Retrieve InferenceData objects and save them to disk
 futures = dask.persist(*res)
 resdf = dask.compute(futures)
 data_df = list(resdf[0])
-samples = xr.concat([df.to_xarray() for df in data_df], dim="features")
-samples = samples.assign_coords(coords={
-    'features' : table.ids(axis='observation'),
-    'monte_carlo_samples' : np.arange(args.monte_carlo_samples)})
-samples.to_netcdf(args.output_tensor)
+coords={'features' : counts.columns,
+        'monte_carlo_samples' : np.arange(args.monte_carlo_samples)}
+samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
+
+# Get summary statistics
+loo = az.loo(samples)
+bfmi = az.bfmi(samples)
+rhat = az.rhat(samples, var_names=nb.param_names)
+ess = az.ess(samples, var_names=nb.param_names)
+#r2 = r2_score(samples)
+summary_stats = loo
+summary_stats.loc['bfmi'] = [bfmi.mean().values, bfmi.std().values]
+summary_stats.loc['r2'] = r2.values
+
+# Save everything to a file
+os.mkdir(args.output_directory)
+posterior_file = os.path.join(args.output_directory,
+                              'differential_posterior.nc')
+summary_file = os.path.join(args.output_directory,
+                            'summary_statistics.txt')
+rhat_file = os.path.join(args.output_directory, 'rhat.nc')
+ess_file = os.path.join(args.output_directory, 'ess.nc')
+bfmi_file = os.path.join(args.output_directory, 'bfmi.nc')
+samples.to_netcdf(posterior_file)
+rhat.to_netcdf(rhat_file)
+ess.to_netcdf(ess_file)
+bfmi.to_netcdf(bfmi_file)
+summary_stats.to_csv(summary_file, sep='\t')
