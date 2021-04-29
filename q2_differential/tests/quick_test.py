@@ -64,12 +64,15 @@ samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
 #samples = samples.assign_coords()
 
 # Get summary statistics
-loo = az.loo(samples)
-bfmi = az.bfmi(samples)
+# loo = az.loo(samples)   # broken due to nans
+# bfmi = az.bfmi(samples) # broken due to nans
 param_names = ['mu', 'sigma', 'diff', 'disp', 'control']
 rhat = az.rhat(samples, var_names=param_names)
 ess = az.ess(samples, var_names=param_names)
-r2 = r2_score(samples)
+y_pred = samples['posterior_predictive'].stack(
+    sample=("chain", "draw"))['y_predict'].fillna(0).values.T
+r2 = az.r2_score(counts.values, y_pred)
+
 summary_stats = loo
 summary_stats.loc['bfmi'] = [bfmi.mean().values, bfmi.std().values]
 summary_stats.loc['r2'] = r2.values

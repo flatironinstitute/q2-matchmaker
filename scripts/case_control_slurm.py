@@ -7,7 +7,7 @@ from biom import load_table
 import pandas as pd
 import numpy as np
 import xarray as xr
-from q2_differential._stan import _case_control_single
+from q2_differential._stan import _case_control_single, merge_inferences
 import time
 import logging
 
@@ -101,7 +101,7 @@ for d in range(dcounts.shape[0]):
 # Retrieve InferenceData objects and save them to disk
 futures = dask.persist(*res)
 resdf = dask.compute(futures)
-data_df = list(resdf[0])
+inf_list = list(resdf[0])
 coords={'features' : counts.columns,
         'monte_carlo_samples' : np.arange(args.monte_carlo_samples)}
 samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
@@ -109,9 +109,15 @@ samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
 # Get summary statistics
 loo = az.loo(samples)
 bfmi = az.bfmi(samples)
-rhat = az.rhat(samples, var_names=nb.param_names)
-ess = az.ess(samples, var_names=nb.param_names)
-#r2 = r2_score(samples)
+param_names = ['mu', 'sigma', 'diff', 'disp', 'control']
+rhat = az.rhat(samples, var_names=param_names)
+ess = az.ess(samples, var_names=param_names)
+
+# Get Bayesian r2
+y_pred = samples['posterior_predictive'].stack(
+    sample=("chain", "draw"))['y_predict'].fillna(0).values.T
+r2 = az.r2_score(counts.values, y_pred)
+
 summary_stats = loo
 summary_stats.loc['bfmi'] = [bfmi.mean().values, bfmi.std().values]
 summary_stats.loc['r2'] = r2.values
