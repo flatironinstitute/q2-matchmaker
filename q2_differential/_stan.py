@@ -15,6 +15,7 @@ from cmdstanpy import CmdStanModel
 from sklearn.preprocessing import LabelEncoder
 import dask_jobqueue
 from dask.distributed import Client
+from dask.distributed import wait
 import tempfile
 import json
 import arviz as az
@@ -186,8 +187,8 @@ class BaseModel:
         table: biom.table.Table,
         metadata: pd.DataFrame,
         model_path: str,
-        num_iter: int = 500,
-        num_warmup: int = None,
+        num_iter: int = 1000,
+        num_warmup: int = 500,
         chains: int = 4,
         seed: float = 42,
         #tmp_directory='/tmp',
@@ -198,6 +199,8 @@ class BaseModel:
         self.num_iter = num_iter
         if num_warmup is None:
             self.num_warmup = num_iter
+        else:
+            self.num_warmup = num_warmup
         self.chains = chains
         self.seed = seed
         self.feature_names = table.ids(axis="observation")
@@ -211,7 +214,8 @@ class BaseModel:
         self.dat = {
             "y": table.matrix_data.todense().T.astype(int),
             "D": table.shape[0],
-            "N": table.shape[1]
+            "N": table.shape[1],
+            "depth": np.log(table.sum(axis='sample'))
         }
 
     def compile_model(self) -> None:
@@ -290,13 +294,13 @@ class BaseModel:
         if sampler_args is None:
             sampler_args = dict()
 
-        if dask_cluster is not None:
-            print(dask_cluster.job_script())
-            dask_cluster.scale(jobs=jobs)
-            client = Client(dask_cluster)
-            print(client)
-            client.wait_for_workers(jobs)
-            time.sleep(60)
+        if dask_cluster is None:
+            raise ValueError('Parallelization can only be performed '
+                             'on a cluster')
+        dask_cluster.scale(jobs=jobs)
+        client = Client(dask_cluster)
+        client.wait_for_workers(jobs)
+        time.sleep(60)
 
         @dask.delayed
         def _fit_single(self, values):
@@ -312,6 +316,13 @@ class BaseModel:
                 seed=self.seed,
                 **sampler_args
             )
+            _fit.diagnose()  # won't print otherwise ...
+            mu = _fit.stan_variable('mu')
+            sigma = _fit.stan_variable('sigma')
+            diff = _fit.stan_variable('diff')
+            print('mu', mu.mean(), mu.std())
+            print('sigma', sigma.mean(), sigma.std())
+            print('diff', diff.mean(), diff.std())
             return _fit
 
         _fits = []
@@ -455,9 +466,9 @@ class NegativeBinomialCaseControl(BaseModel):
     metadata: pd.DataFrame
         Metadata for matching and status covariates.
     num_iter: int
-        Number of posterior sample draws, defaults to 500
+        Number of posterior sample draws, defaults to 1000
     num_warmup: int
-        Number of posterior draws used for warmup, defaults to
+        Number of posterior draws used for warmup, defaults to 500
     chains: int
         Number of chains to use in MCMC, defaults to 4
     seed: float
@@ -477,8 +488,8 @@ class NegativeBinomialCaseControl(BaseModel):
                  reference_status : str,
                  matching_column : str,
                  metadata: pd.DataFrame,
-                 num_iter: int = 500,
-                 num_warmup: int = None,
+                 num_iter: int = 1000,
+                 num_warmup: int = 500,
                  adapt_delta: float = 0.9,
                  max_treedepth: float = 20,
                  chains: int = 4,

@@ -10,6 +10,8 @@ import xarray as xr
 from q2_differential._stan import NegativeBinomialCaseControl
 import time
 import logging
+from gneiss.util import match
+import arviz as az
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
@@ -28,6 +30,9 @@ parser.add_argument(
 parser.add_argument(
     '--monte-carlo-samples', help='Number of monte carlo samples.',
     type=int, required=False, default=1000)
+parser.add_argument(
+    '--chains', help='Number of parallel chains.',
+    type=int, required=False, default=4)
 parser.add_argument(
     '--cores', help='Number of cores per process.',
     type=int, required=False, default=1)
@@ -68,28 +73,34 @@ cluster = SLURMCluster(cores=args.cores,
                        shebang='#!/usr/bin/env bash',
                        env_extra=["export TBB_CXX_TYPE=gcc"],
                        queue=args.queue)
-print(cluster.job_script())
-cluster.scale(jobs=args.nodes)
-client = Client(cluster)
-print(client)
-client.wait_for_workers(args.nodes)
-time.sleep(60)
-print(cluster.scheduler.workers)
+# print(cluster.job_script())
+# cluster.scale(jobs=args.nodes)
+# client = Client(cluster)
+# print(client)
+# client.wait_for_workers(args.nodes)
+# time.sleep(60)
+# print(cluster.scheduler.workers)
 # load relevant files
 table = load_table(args.biom_table)
-metadata = pd.read_table(args.metadata, index_col=0)
-metadata = metadata.loc[table.ids()]
+metadata = pd.read_table(args.metadata_file, index_col=0)
+table, metadata = match(table, metadata)
 
 nb = NegativeBinomialCaseControl(
-            table=biom_table,
+            table=table,
             matching_column=args.matching_ids,
             status_column=args.groups,
             metadata=metadata,
             reference_status=args.reference_group,
             chains=args.chains)
 nb.compile_model()
-nb.fit_model()
-inf = nb.to_inference_object()
+nb.fit_model(dask_cluster=cluster, jobs=args.nodes)
+for n in nb.fit:
+    try:
+        az.from_cmdstanpy(posterior=n)
+    except:
+        continue
+
+inf = nb.to_inference_object(dask_cluster=cluster, jobs=args.nodes)
 
 # Get summary statistics
 loo = az.loo(inf)
