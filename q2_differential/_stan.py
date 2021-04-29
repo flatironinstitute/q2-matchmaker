@@ -158,7 +158,6 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
         return res
 
 
-
 class BaseModel:
     """Base Stan model.
     :param table: Feature table (features x samples)
@@ -191,6 +190,7 @@ class BaseModel:
         num_warmup: int = None,
         chains: int = 4,
         seed: float = 42,
+        #tmp_directory='/tmp',
         parallelize_across: str = "chains"
     ):
         self.table = table
@@ -203,6 +203,7 @@ class BaseModel:
         self.feature_names = table.ids(axis="observation")
         self.sample_names = table.ids(axis="sample")
         self.model_path = model_path
+        #self.tmp_directory = tmp_directory
         self.sm = None
         self.fit = None
         self.parallelize_across = parallelize_across
@@ -307,6 +308,7 @@ class BaseModel:
                 data=dat,
                 iter_warmup=self.num_warmup,
                 iter_sampling=self.num_iter,
+                #output_dir=self.tmp_directory,
                 seed=self.seed,
                 **sampler_args
             )
@@ -481,6 +483,7 @@ class NegativeBinomialCaseControl(BaseModel):
                  max_treedepth: float = 20,
                  chains: int = 4,
                  seed: float = 42,
+                 #tmp_directory='/tmp',
                  mu_scale: float = 10,
                  sigma_scale: float = 1,
                  disp_scale: float = 1,
@@ -490,8 +493,9 @@ class NegativeBinomialCaseControl(BaseModel):
             'assets/nb_case_control_single.stan')
         super(NegativeBinomialCaseControl, self).__init__(
             table, metadata, model_path,
-            num_iter, num_warmup, chains,
-            seed, parallelize_across = "features")
+            num_iter, num_warmup, chains, seed,
+            #tmp_directory=tmp_directory,
+            parallelize_across = "features")
         case_ctrl_ids = self.metadata[matching_column]
         status = self.metadata[status_column]
         case_member = (status == reference_status).astype(np.int64)
@@ -509,7 +513,6 @@ class NegativeBinomialCaseControl(BaseModel):
             'cc_bool' : list(map(int, case_member)),
             'cc_ids' : list(map(int, case_ids + 1))
         }
-
         param_dict = {
             "mu_scale": mu_scale,
             "sigma_scale": sigma_scale,

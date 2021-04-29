@@ -83,7 +83,7 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
     def setUp(self):
         np.random.seed(0)
         self.table, self.metadata, self.diff = _case_control_sim(
-            n=200, d=50, depth=100)
+            n=50, d=3, depth=100)
 
     def test_cc(self):
         biom_table = Table(self.table.values.T,
@@ -121,8 +121,8 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
         biom_table = Table(self.table.values.T,
                            list(self.table.columns),
                            list(self.table.index))
-        cluster = SLURMCluster(cores=5,
-                               processes=5,
+        cluster = SLURMCluster(cores=4,
+                               processes=4,
                                memory='16GB',
                                walltime='01:00:00',
                                interface='ib0',
@@ -143,7 +143,16 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
             seed=42)
         nb.compile_model()
         nb.fit_model(dask_cluster=cluster)
-        inf = nb.to_inference_object()
+        print(nb.fit)
+        print(nb.fit[0])
+        # most hacky solution ever
+        for n in nb.fit:
+            try:
+                az.from_cmdstanpy(posterior=n)
+            except:
+                continue
+
+        inf = nb.to_inference_object(dask_cluster=cluster)
         loo = az.loo(inf)
         bfmi = az.bfmi(inf)
         rhat = az.rhat(inf, var_names=nb.param_names)
