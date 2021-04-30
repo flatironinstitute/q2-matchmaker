@@ -10,7 +10,7 @@ import xarray as xr
 from q2_differential._stan import _case_control_single, merge_inferences
 import time
 import logging
-
+import os
 import arviz as az
 
 
@@ -101,26 +101,27 @@ for d in range(dcounts.shape[0]):
 # Retrieve InferenceData objects and save them to disk
 futures = dask.persist(*res)
 resdf = dask.compute(futures)
+print('Runs complete')
 inf_list = list(resdf[0])
 coords={'features' : counts.columns,
         'monte_carlo_samples' : np.arange(args.monte_carlo_samples)}
 samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
-
+print('Merging results')
 # Get summary statistics
-loo = az.loo(samples)
-bfmi = az.bfmi(samples)
+#loo = az.loo(samples)
+#bfmi = az.bfmi(samples)
 param_names = ['mu', 'sigma', 'diff', 'disp', 'control']
-rhat = az.rhat(samples, var_names=param_names)
-ess = az.ess(samples, var_names=param_names)
+#rhat = az.rhat(samples, var_names=param_names)
+#ess = az.ess(samples, var_names=param_names)
 
 # Get Bayesian r2
 y_pred = samples['posterior_predictive'].stack(
     sample=("chain", "draw"))['y_predict'].fillna(0).values.T
 r2 = az.r2_score(counts.values, y_pred)
 
-summary_stats = loo
-summary_stats.loc['bfmi'] = [bfmi.mean().values, bfmi.std().values]
-summary_stats.loc['r2'] = r2.values
+summary_stats = r2
+#summary_stats.loc['bfmi'] = [bfmi.mean().values, bfmi.std().values]
+#summary_stats.loc['r2'] = r2.values
 
 # Save everything to a file
 os.mkdir(args.output_directory)
@@ -128,11 +129,11 @@ posterior_file = os.path.join(args.output_directory,
                               'differential_posterior.nc')
 summary_file = os.path.join(args.output_directory,
                             'summary_statistics.txt')
-rhat_file = os.path.join(args.output_directory, 'rhat.nc')
-ess_file = os.path.join(args.output_directory, 'ess.nc')
-bfmi_file = os.path.join(args.output_directory, 'bfmi.nc')
+# rhat_file = os.path.join(args.output_directory, 'rhat.nc')
+# ess_file = os.path.join(args.output_directory, 'ess.nc')
+# bfmi_file = os.path.join(args.output_directory, 'bfmi.nc')
 samples.to_netcdf(posterior_file)
-rhat.to_netcdf(rhat_file)
-ess.to_netcdf(ess_file)
-bfmi.to_netcdf(bfmi_file)
+#rhat.to_netcdf(rhat_file)
+#ess.to_netcdf(ess_file)
+#bfmi.to_netcdf(bfmi_file)
 summary_stats.to_csv(summary_file, sep='\t')
