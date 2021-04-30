@@ -210,6 +210,6 @@ plugin.register_semantic_types(FeatureTensor, Matching)
 plugin.register_semantic_type_to_format(
     FeatureTensor, FeatureTensorNetCDFDirFmt)
 plugin.register_semantic_type_to_format(
-    Matching, MatchingDirectoryFormat)
+    SampleData[Matching], MatchingDirectoryFormat)
 
 importlib.import_module('q2_differential._transformer')

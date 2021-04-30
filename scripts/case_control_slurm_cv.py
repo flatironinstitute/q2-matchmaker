@@ -92,23 +92,44 @@ metadata['groups'] = (metadata['groups'] == args.reference_group).astype(np.int6
 counts, metadata = match(counts, metadata)
 
 depth = counts.sum(axis=1)
-pfunc = lambda x: _case_control_single(
-    x, case_ctrl_ids=metadata['cc_ids'],
+# assemble test data
+test_table = load_table(args.test_biom_table)
+test_counts = pd.DataFrame(np.array(test_table.matrix_data.todense()).T,
+                           index=test_table.ids(),
+                           columns=test_table.ids(axis='observation'))
+test_metadata = pd.read_table(args.test_metadata_file, index_col=0)
+matching_ids = test_metadata[args.matching_ids]
+groups = test_metadata[args.groups]
+test_metadata = pd.DataFrame({'cc_ids': matching_ids,
+                             'groups': groups})
+test_metadata['groups'] = (
+    test_metadata['groups'] == args.reference_group).astype(np.int64)
+test_counts, test_metadata = match(test_counts, test_metadata)
+pfunc = lambda x, y: _case_control_single(
+    x,
+    case_ctrl_ids=metadata['cc_ids'],
     case_member=metadata['groups'],
+    test_counts=y,
+    test_case_ctrl_ids=test_metadata['cc_ids'],
+    test_case_member=test_metadata['groups'],
     depth=depth, mc_samples=args.monte_carlo_samples)
 
 dcounts = da.from_array(counts.values.T, chunks=(counts.T.shape))
+dtest_counts = da.from_array(test_counts.values.T, chunks=(test_counts.T.shape))
 
 res = []
+# assumes that datasets have already been matched
 for d in range(dcounts.shape[0]):
-    r = dask.delayed(pfunc)(dcounts[d])
+    r = dask.delayed(pfunc)(dcounts[d], dtest_counts[d])
     res.append(r)
 # Retrieve InferenceData objects and save them to disk
 futures = dask.persist(*res)
 resdf = dask.compute(futures)
 print('Runs complete')
-inf_list = list(resdf[0])
+inf_list, cv_data = zip(*resdf[0])
+inf_list = list(inf_list)
 cv_data = xr.concat([cv.to_xarray() for cv in cv_data], dim="feature")
+
 coords={'features' : counts.columns,
         'monte_carlo_samples' : np.arange(args.monte_carlo_samples)}
 samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)

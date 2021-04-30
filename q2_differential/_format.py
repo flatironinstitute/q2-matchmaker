@@ -24,8 +24,7 @@ class MatchingFormat(model.TextFileFormat):
 
 
 MatchingDirectoryFormat = model.SingleFileDirectoryFormat(
-    'MatchingDirectoryFormat', 'matching.tsv',
-    MatchingFormat)
+    'MatchingDirectoryFormat', 'matching.tsv', MatchingFormat)
 
 
 # class DifferentialStatsFormat(model.TextFileFormat):
