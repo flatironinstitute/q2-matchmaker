@@ -90,7 +90,6 @@ metadata['groups'] = (metadata['groups'] == args.reference_group).astype(np.int6
 
 # take intersections
 counts, metadata = match(counts, metadata)
-
 depth = counts.sum(axis=1)
 # assemble test data
 test_table = load_table(args.test_biom_table)
@@ -101,7 +100,7 @@ test_metadata = pd.read_table(args.test_metadata_file, index_col=0)
 matching_ids = test_metadata[args.matching_ids]
 groups = test_metadata[args.groups]
 test_metadata = pd.DataFrame({'cc_ids': matching_ids,
-                             'groups': groups})
+                              'groups': groups})
 test_metadata['groups'] = (
     test_metadata['groups'] == args.reference_group).astype(np.int64)
 test_counts, test_metadata = match(test_counts, test_metadata)

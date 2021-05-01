@@ -95,7 +95,7 @@ depth = counts.sum(axis=1)
 pfunc = lambda x: _case_control_single(
     x, case_ctrl_ids=metadata['cc_ids'],
     case_member=metadata['groups'],
-    depth=depth, mc_samples=args.monte_carlo_samples)
+    depth=depth, mc_samples=args.monte_carlo_samples)[0]
 
 dcounts = da.from_array(counts.values.T, chunks=(counts.T.shape))
 
@@ -108,7 +108,6 @@ futures = dask.persist(*res)
 resdf = dask.compute(futures)
 print('Runs complete')
 inf_list = list(resdf[0])
-cv_data = xr.concat([cv.to_xarray() for cv in cv_data], dim="feature")
 coords={'features' : counts.columns,
         'monte_carlo_samples' : np.arange(args.monte_carlo_samples)}
 samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)

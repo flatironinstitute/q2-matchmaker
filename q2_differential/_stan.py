@@ -172,7 +172,7 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
             # grab all columns with log_lhood
             df = new_quantities.generated_quantities_pd
             idx = list(map(lambda x: 'log_lhood' in x, df.columns))
-            cv_loglike = new_quantities.generated_quantities_pd[idx]
+            cv_loglike = df.iloc[:, idx]
         else:
             cv_loglike = None
 

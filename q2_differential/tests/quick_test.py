@@ -17,9 +17,10 @@ import arviz as az
 np.random.seed(0)
 counts, metadata, diff = _case_control_sim(
     n=50, d=10, depth=100)
-
-
-jobs=4
+test_counts = counts
+test_metadata = metadata
+monte_carlo_samples = 100
+jobs=2
 cluster = SLURMCluster(cores=4,
                        processes=jobs,
                        memory='16GB',
@@ -41,22 +42,28 @@ print(cluster.scheduler.workers)
 
 # take intersection
 depth = counts.sum(axis=1)
-pfunc = lambda x: _case_control_single(
-    x, case_ctrl_ids=metadata['reps'],
+pfunc = lambda x, y: _case_control_single(
+    x,
+    case_ctrl_ids=metadata['reps'],
     case_member=metadata['diff'],
-    depth=depth, mc_samples=1000)
+    test_counts=y,
+    test_case_ctrl_ids=test_metadata['reps'],
+    test_case_member=test_metadata['diff'],
+    depth=depth, mc_samples=monte_carlo_samples)
+
 dcounts = da.from_array(counts.values.T, chunks=(counts.T.shape))
+dtest_counts = da.from_array(test_counts.values.T, chunks=(test_counts.T.shape))
 
 res = []
 for d in range(dcounts.shape[0]):
-    r = dask.delayed(pfunc)(dcounts[d])
+    r = dask.delayed(pfunc)(dcounts[d], dtest_counts[d])
     res.append(r)
 # Retrieve InferenceData objects and save them to disk
 futures = dask.persist(*res)
 resdf = dask.compute(futures)
-inf_list = list(resdf[0])
-# coords={'features' : table.ids(axis='observation'),
-#         'monte_carlo_samples' : np.arange(1000)}
+inf_list, cv_data = zip(*resdf[0])
+cv_data = xr.concat([cv.to_xarray() for cv in cv_data], dim="feature")
+
 coords={'features' : counts.columns, 'monte_carlo_samples' : np.arange(1000)}
 
 samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
@@ -73,9 +80,9 @@ y_pred = samples['posterior_predictive'].stack(
     sample=("chain", "draw"))['y_predict'].fillna(0).values.T
 r2 = az.r2_score(counts.values, y_pred)
 
-summary_stats = loo
-summary_stats.loc['bfmi'] = [bfmi.mean().values, bfmi.std().values]
-summary_stats.loc['r2'] = r2.values
+# summary_stats = loo
+# summary_stats.loc['bfmi'] = [bfmi.mean().values, bfmi.std().values]
+# summary_stats.loc['r2'] = r2.values
 
 # Save everything to a file
 # os.mkdir(args.output_directory)
