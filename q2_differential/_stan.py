@@ -151,6 +151,7 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
         fit.diagnose()
 
         # if there is test data, assemble out-of-distribution statistics
+        # TODO: cross validation is broken because of test_case_ids
         if ((test_counts is not None) and
             (test_case_ctrl_ids is not None) and
             (test_case_member is not None)):
@@ -203,7 +204,7 @@ def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
 
 
 def merge_inferences(inf_list, log_likelihood, posterior_predictive,
-                     coords, concatenation_name='features'):
+                     coords, concatenation_name='features', sample_name='samples'):
     group_list = []
     group_list.append(dask.persist(*[x.posterior for x in inf_list]))
     group_list.append(dask.persist(*[x.sample_stats for x in inf_list]))
@@ -221,18 +222,20 @@ def merge_inferences(inf_list, log_likelihood, posterior_predictive,
 
     if log_likelihood is not None:
         ll_ds = xr.concat(group_list[2], concatenation_name)
+        ll_ds = ll_ds.rename_dims({'y_predict_dim_0': sample_name})
         group_dict["log_likelihood"] = ll_ds
     if posterior_predictive is not None:
         pp_ds = xr.concat(group_list[3], concatenation_name)
+        pp_ds = pp_ds.rename_dims({'y_predict_dim_0': sample_name})
         group_dict["posterior_predictive"] = pp_ds
 
     all_group_inferences = []
     for group in group_dict:
         # Set concatenation dim coords
         group_ds = group_dict[group].assign_coords(
-            {concatenation_name: coords[concatenation_name]}
+            {concatenation_name: coords[concatenation_name],
+             sample_name : coords[sample_name]}
         )
-
         group_inf = az.InferenceData(**{group: group_ds})  # hacky
         all_group_inferences.append(group_inf)
 

@@ -115,7 +115,7 @@ pfunc = lambda x, y: _case_control_single(
 
 dcounts = da.from_array(counts.values.T, chunks=(counts.T.shape))
 dtest_counts = da.from_array(test_counts.values.T, chunks=(test_counts.T.shape))
-
+print(dcounts.shape, dtest_counts.shape)
 res = []
 # assumes that datasets have already been matched
 for d in range(dcounts.shape[0]):
