@@ -64,7 +64,7 @@ resdf = dask.compute(futures)
 inf_list, cv_data = zip(*resdf[0])
 cv_data = xr.concat([cv.to_xarray() for cv in cv_data], dim="feature")
 
-coords={'features' : counts.columns, 'monte_carlo_samples' : np.arange(1000)}
+coords={'features' : counts.columns, 'monte_carlo_samples' : np.arange(1000), 'samples' : counts.index}
 
 samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
 #samples = xr.concat([df.to_xarray() for df in data_df], dim="features")

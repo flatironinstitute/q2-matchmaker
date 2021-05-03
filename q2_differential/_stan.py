@@ -222,7 +222,7 @@ def merge_inferences(inf_list, log_likelihood, posterior_predictive,
 
     if log_likelihood is not None:
         ll_ds = xr.concat(group_list[2], concatenation_name)
-        ll_ds = ll_ds.rename_dims({'y_predict_dim_0': sample_name})
+        ll_ds = ll_ds.rename_dims({'log_lhood_dim_0': sample_name})
         group_dict["log_likelihood"] = ll_ds
     if posterior_predictive is not None:
         pp_ds = xr.concat(group_list[3], concatenation_name)
