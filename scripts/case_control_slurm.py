@@ -103,7 +103,7 @@ futures = dask.persist(*res)
 resdf = dask.compute(futures)
 print('Runs complete')
 inf_list = list(resdf[0])
-coords={'features' : counts.columns,
+coords={'features' : counts.columns, 'samples': counts.index,
         'monte_carlo_samples' : np.arange(args.monte_carlo_samples)}
 samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
 print('Merging results')

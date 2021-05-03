@@ -55,13 +55,9 @@ for d in range(dcounts.shape[0]):
 futures = dask.persist(*res)
 resdf = dask.compute(futures)
 inf_list = list(resdf[0])
-# coords={'features' : table.ids(axis='observation'),
-#         'monte_carlo_samples' : np.arange(1000)}
-coords={'features' : counts.columns, 'monte_carlo_samples' : np.arange(1000)}
-
+coords={'features' : counts.columns, 'monte_carlo_samples' : np.arange(1000),
+        'samples': counts.index}
 samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
-#samples = xr.concat([df.to_xarray() for df in data_df], dim="features")
-#samples = samples.assign_coords()
 
 # Get summary statistics
 # loo = az.loo(samples)   # broken due to nans
@@ -73,9 +69,9 @@ y_pred = samples['posterior_predictive'].stack(
     sample=("chain", "draw"))['y_predict'].fillna(0).values.T
 r2 = az.r2_score(counts.values, y_pred)
 
-summary_stats = loo
-summary_stats.loc['bfmi'] = [bfmi.mean().values, bfmi.std().values]
-summary_stats.loc['r2'] = r2.values
+summary_stats = r1
+# summary_stats.loc['bfmi'] = [bfmi.mean().values, bfmi.std().values]
+# summary_stats.loc['r2'] = r2.values
 
 # Save everything to a file
 # os.mkdir(args.output_directory)
