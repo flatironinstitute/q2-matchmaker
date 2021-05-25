@@ -3,83 +3,35 @@ import qiime2.plugin
 import qiime2.sdk
 from qiime2.plugin import (Str, Properties, Int, Float,  Metadata, Bool, List,
                            MetadataColumn, Categorical)
-from q2_differential import __version__
-from q2_differential._type import FeatureTensor, Matching
-from q2_differential._format import (
-    FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt,
-    MatchingFormat, MatchingDirectoryFormat
-    # DifferentialStatsFormat, DifferentialStatsDirectoryFormat
+from q2_matchmaker import __version__
+from q2_matchmaker._type import Matching
+from q2_matchmaker._format import MatchingFormat, MatchingDirectoryFormat
+from q2_types._type import MonteCarloTensor
+from q2_types._format import (
+    MonteCarloTensorFormat, MonteCarloTensorDirectoryFormat
 )
-from q2_differential._method import (
-    dirichlet_multinomial, negative_binomial_case_control,
+from q2_matchmaker._method import (
+    negative_binomial_case_control,
     parallel_negative_binomial_case_control,
     slurm_negative_binomial_case_control, matching
 )
-from q2_differential._visualizer import rankplot
+from q2_matchmaker._visualizer import rankplot
 from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.ordination import PCoAResults
 from q2_types.sample_data import SampleData
-from q2_types.feature_data import (FeatureData, Differential)
 import xarray as xr
 
 
 plugin = qiime2.plugin.Plugin(
-    name='differential',
+    name='matchmaker',
     version=__version__,
-    website="https://github.com/mortonjt/q2-differential",
+    website="https://github.com/mortonjt/q2-matchmaker",
     citations=[],
-    short_description=('Plugin for differential abundance analysis '
+    short_description=('Plugin for matchmaker abundance analysis '
                        'via count-based models.'),
     description=('This is a QIIME 2 plugin supporting statistical models on '
                  'feature tables and metadata.'),
-    package='q2-differential')
-
-
-plugin.methods.register_function(
-    function=dirichlet_multinomial,
-    inputs={'table': FeatureTable[Frequency]},
-    parameters={
-        'groups': MetadataColumn[Categorical],
-        'training_samples': MetadataColumn[Categorical],
-        'percent_test_examples': Float,
-        'monte_carlo_samples': Int,
-        'reference_group': Str
-    },
-    outputs=[
-        ('differentials', FeatureTensor)
-    ],
-    input_descriptions={
-        "table": "Input table of counts.",
-    },
-    output_descriptions={
-        'differentials': ('Output posterior differentials learned from the '
-                          'Dirichlet Multinomial.'),
-    },
-    parameter_descriptions={
-        'groups': ('The categorical sample metadata column to test for '
-                     'differential abundance across.'),
-        "training_samples": (
-            'The column in the metadata file used to '
-            'specify training and testing. These columns '
-            'should be specifically labeled (Train) and (Test).'
-        ),
-        "percent_test_examples": (
-            'Percentage of random samples to hold out for cross-validation if '
-            'a training column is not specified.'
-        ),
-        "monte_carlo_samples": (
-            'Number of monte carlo samples to draw from '
-            'posterior distribution.'
-        ),
-        "reference_group": (
-            'Reference category to compute log-fold change from.'
-        )
-    },
-    name='Dirichilet Multinomial',
-    description=("Fits a Dirchilet Multinomial model and computes biased"
-                 "log-fold change."),
-    citations=[]
-)
+    package='q2-matchmaker')
 
 
 plugin.methods.register_function(
@@ -93,19 +45,19 @@ plugin.methods.register_function(
         'cores': Int
     },
     outputs=[
-        ('differentials', FeatureTensor)
+        ('differentials', MonteCarloTensor)
     ],
     input_descriptions={
         "table": "Input table of counts.",
     },
     output_descriptions={
-        'differentials': ('Output posterior differentials learned from the '
+        'matchmakers': ('Output posterior matchmakers learned from the '
                           'Negative Binomial model.'),
     },
     parameter_descriptions={
         'matching_ids': ('The matching ids to link case-control samples '),
         'groups': ('The categorical sample metadata column to test for '
-                     'differential abundance across.'),
+                     'matchmaker abundance across.'),
         "monte_carlo_samples": (
             'Number of monte carlo samples to draw from '
             'posterior distribution.'
@@ -133,19 +85,19 @@ plugin.methods.register_function(
         'cores': Int
     },
     outputs=[
-        ('differentials', FeatureTensor)
+        ('matchmakers', MonteCarloTensor)
     ],
     input_descriptions={
         "table": "Input table of counts.",
     },
     output_descriptions={
-        'differentials': ('Output posterior differentials learned from the '
+        'matchmakers': ('Output posterior matchmakers learned from the '
                           'Negative Binomial model.'),
     },
     parameter_descriptions={
         'matching_ids': ('The matching ids to link case-control samples '),
         'groups': ('The categorical sample metadata column to test for '
-                     'differential abundance across.'),
+                     'matchmaker abundance across.'),
         "monte_carlo_samples": (
             'Number of monte carlo samples to draw from '
             'posterior distribution.'
@@ -192,24 +144,13 @@ plugin.methods.register_function(
     citations=[]
 )
 
-plugin.visualizers.register_function(
-    function=rankplot,
-    inputs={'differentials': FeatureTensor},
-    parameters={},
-    input_descriptions={'differentials': 'Differentials or log-fold changes.'},
-    parameter_descriptions={},
-    name='Rank plot',
-    description="Generate a rank plot of the log-fold changes",
-    citations=[]
-)
 
-
-plugin.register_formats(FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt,
+plugin.register_formats(MonteCarloTensorFormat, MonteCarloTensorDirectoryFormat,
                         MatchingFormat, MatchingDirectoryFormat)
-plugin.register_semantic_types(FeatureTensor, Matching)
+plugin.register_semantic_types(MonteCarloTensor, Matching)
 plugin.register_semantic_type_to_format(
-    FeatureTensor, FeatureTensorNetCDFDirFmt)
+    MonteCarloTensor, MonteCarloTensorDirectoryFormat)
 plugin.register_semantic_type_to_format(
     SampleData[Matching], MatchingDirectoryFormat)
 
-importlib.import_module('q2_differential._transformer')
+importlib.import_module('q2_matchmaker._transformer')
