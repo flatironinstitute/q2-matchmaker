@@ -22,7 +22,7 @@ classifiers = [s.strip() for s in classes.split('\n') if s]
 description = ('QIIME2 plugin for Case-Control Differential Abundance Analysis.')
 
 
-setup(name='q2-differential',
+setup(name='q2-matchmaker',
       version='0.1.0',
       license='BSD-3-Clause',
       description=description,

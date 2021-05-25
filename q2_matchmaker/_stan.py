@@ -207,8 +207,8 @@ class NegativeBinomialCaseControl(BaseModel):
             table, metadata, model_path,
             num_iter, num_warmup, chains, seed,
             parallelize_across = "features")
-        case_ctrl_ids = self.metadata[matching_column]
-        status = self.metadata[status_column]
+        case_ctrl_ids = metadata[matching_column]
+        status = metadata[status_column]
         case_member = (status == reference_status).astype(np.int64)
         case_encoder = LabelEncoder()
         case_encoder.fit(case_ctrl_ids)

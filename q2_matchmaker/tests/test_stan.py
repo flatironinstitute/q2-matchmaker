@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from q2_differential._stan import (
+from q2_matchmaker._stan import (
     _case_control_sim, _case_control_full,
     _case_control_data, _case_control_single,
     NegativeBinomialCaseControl
@@ -8,13 +8,7 @@ from q2_differential._stan import (
 from biom import Table
 from birdman.diagnostics import r2_score
 import arviz as az
-
-try:
-    from dask_jobqueue import SLURMCluster
-    import dask
-    no_dask = False
-except:
-    no_dask = True
+from dask.distributed import Client, LocalCluster
 
 
 class TestCaseControl(unittest.TestCase):
@@ -83,7 +77,7 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
     def setUp(self):
         np.random.seed(0)
         self.table, self.metadata, self.diff = _case_control_sim(
-            n=50, d=3, depth=100)
+            n=50, d=10, depth=100)
 
     def test_cc(self):
         biom_table = Table(self.table.values.T,
@@ -96,72 +90,21 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
             status_column="diff",
             metadata=self.metadata,
             reference_status='1',
-            chains=4,
-            seed=42)
-        nb.compile_model()
-        nb.fit_model()
-        # inf = nb.to_inference_object()
-        # loo = az.loo(inf)
-        # bfmi = az.bfmi(inf)
-        # rhat = az.rhat(inf, var_names=nb.param_names)
-        # ess = az.ess(inf, var_names=nb.param_names)
-        # r2 = r2_score(inf)
-        # print('loo', loo)
-        # print('bfmi', bfmi.mean(), bfmi.std())
-        # print('rhat', rhat)
-        # print('r2', r2)
-        # summary_stats = loo
-        # summary_stats.loc['bfmi'] = [bfmi.mean().values, bfmi.std().values]
-        # summary_stats.loc['r2'] = r2.values
-
-
-    @unittest.skipIf(no_dask, 'Dask-jobqueue is not installed')
-    def test_cc_slurm(self):
-
-        biom_table = Table(self.table.values.T,
-                           list(self.table.columns),
-                           list(self.table.index))
-        cluster = SLURMCluster(cores=4,
-                               processes=4,
-                               memory='16GB',
-                               walltime='01:00:00',
-                               interface='ib0',
-                               nanny=True,
-                               death_timeout='300s',
-                               local_directory='/scratch',
-                               shebang='#!/usr/bin/env bash',
-                               env_extra=["export TBB_CXX_TYPE=gcc"],
-                               queue='ccb')
-
-        nb = NegativeBinomialCaseControl(
-            table=biom_table,
-            matching_column="reps",
-            status_column="diff",
-            metadata=self.metadata,
-            reference_status='1',
             chains=1,
             seed=42)
         nb.compile_model()
-        nb.fit_model(dask_cluster=cluster)
-        print(nb.fit)
-        print(nb.fit[0])
-        # most hacky solution ever
-        for n in nb.fit:
-            try:
-                az.from_cmdstanpy(posterior=n)
-            except:
-                continue
-
-        inf = nb.to_inference_object(dask_cluster=cluster)
-        loo = az.loo(inf)
-        bfmi = az.bfmi(inf)
-        rhat = az.rhat(inf, var_names=nb.param_names)
-        ess = az.ess(inf, var_names=nb.param_names)
-        r2 = r2_score(inf)
-        print('loo', loo)
-        print('bfmi', bfmi)
-        print('rhat', rhat)
-        print('r2', r2)
+        dask_args={'n_workers': 1, 'threads_per_worker': 1}
+        cluster = LocalCluster(**dask_args)
+        cluster.scale(dask_args['n_workers'])
+        client = Client(cluster)
+        nb.fit_model()
+        inf = nb.to_inference_object()
+        self.assertEqual(inf['posterior']['mu'].shape, (10, 1, 1000))
+        r2_score(inf)
+        az.loo(inf)
+        az.bfmi(inf)
+        az.rhat(inf, var_names=nb.param_names)
+        az.ess(inf, var_names=nb.param_names)
 
 
 if __name__ == '__main__':

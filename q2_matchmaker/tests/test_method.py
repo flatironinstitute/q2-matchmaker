@@ -1,10 +1,9 @@
 import unittest
 import qiime2
-from q2_differential._method import (
-    dirichlet_multinomial, negative_binomial_case_control,
-    parallel_negative_binomial_case_control,
+from q2_matchmaker._method import (
+    negative_binomial_case_control,
     matching)
-from q2_differential._stan import (
+from q2_matchmaker._stan import (
     _case_control_sim, _case_control_full, _case_control_data)
 from skbio.stats.composition import clr_inv
 import biom
