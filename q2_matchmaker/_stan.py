@@ -196,7 +196,6 @@ class NegativeBinomialCaseControl(BaseModel):
                  max_treedepth: float = 20,
                  chains: int = 4,
                  seed: float = 42,
-p                 #tmp_directory='/tmp',
                  mu_scale: float = 10,
                  sigma_scale: float = 1,
                  disp_scale: float = 1,

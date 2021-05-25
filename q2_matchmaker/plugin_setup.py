@@ -27,10 +27,10 @@ plugin = qiime2.plugin.Plugin(
     version=__version__,
     website="https://github.com/mortonjt/q2-matchmaker",
     citations=[],
-    short_description=('Plugin for matchmaker abundance analysis '
-                       'via count-based models.'),
-    description=('This is a QIIME 2 plugin supporting statistical models on '
-                 'feature tables and metadata.'),
+    short_description=('Plugin for case-control differential  abundance '
+                       'analysis via count-based models.'),
+    description=('This is a QIIME 2 plugin supporting case-control '
+                 'statistical models on feature tables and metadata.'),
     package='q2-matchmaker')
 
 
@@ -68,46 +68,6 @@ plugin.methods.register_function(
         "cores" : ('Number of cores to utilize for parallelism.')
     },
     name='Negative Binomial Case Control Estimation',
-    description=("Fits a Negative Binomial model to estimate "
-                 "biased log-fold change"),
-    citations=[]
-)
-
-
-plugin.methods.register_function(
-    function=parallel_negative_binomial_case_control,
-    inputs={'table': FeatureTable[Frequency]},
-    parameters={
-        'matching_ids': MetadataColumn[Categorical],
-        'groups': MetadataColumn[Categorical],
-        'monte_carlo_samples': Int,
-        'reference_group': Str,
-        'cores': Int
-    },
-    outputs=[
-        ('matchmakers', MonteCarloTensor)
-    ],
-    input_descriptions={
-        "table": "Input table of counts.",
-    },
-    output_descriptions={
-        'matchmakers': ('Output posterior matchmakers learned from the '
-                          'Negative Binomial model.'),
-    },
-    parameter_descriptions={
-        'matching_ids': ('The matching ids to link case-control samples '),
-        'groups': ('The categorical sample metadata column to test for '
-                     'matchmaker abundance across.'),
-        "monte_carlo_samples": (
-            'Number of monte carlo samples to draw from '
-            'posterior distribution.'
-        ),
-        "reference_group": (
-            'Reference category to compute log-fold change from.'
-        ),
-        "cores" : ('Number of cores to utilize for parallelism.')
-    },
-    name='Negative Binomial Case Contro Parallel Estimation',
     description=("Fits a Negative Binomial model to estimate "
                  "biased log-fold change"),
     citations=[]
