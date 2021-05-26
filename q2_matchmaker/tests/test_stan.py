@@ -1,8 +1,7 @@
 import unittest
 import numpy as np
 from q2_matchmaker._stan import (
-    _case_control_sim, _case_control_full,
-    _case_control_data, _case_control_single,
+    _case_control_sim,
     NegativeBinomialCaseControl
 )
 from biom import Table
