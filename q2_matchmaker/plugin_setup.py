@@ -6,8 +6,8 @@ from qiime2.plugin import (Str, Properties, Int, Float,  Metadata, Bool, List,
 from q2_matchmaker import __version__
 from q2_matchmaker._type import Matching
 from q2_matchmaker._format import MatchingFormat, MatchingDirectoryFormat
-from q2_types._type import MonteCarloTensor
-from q2_types._format import (
+from q2_types.feature_data._type import MonteCarloTensor
+from q2_types.feature_data._format import (
     MonteCarloTensorFormat, MonteCarloTensorDirectoryFormat
 )
 from q2_matchmaker._method import (
