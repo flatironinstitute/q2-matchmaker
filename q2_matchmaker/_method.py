@@ -15,17 +15,18 @@ from typing import List, Dict
 
 def _negative_binomial_case_control(
         table, matching_ids,
-        groups, monte_carlo_samples,
-        reference_group, **sampler_args):
+        groups, reference_group, **sampler_args):
     if reference_group is None:
         reference_group = groups.iloc[0]
     groups_ = (groups == reference_group).astype(np.int64)
-    metadata = pd.DataFrame({'diff': groups_, 'reps': matching_ids})
+    metadata = pd.DataFrame({
+        groups_.name: groups_,
+        matching_ids.name: matching_ids})
     table, metadata = match(table, metadata)
     nb = NegativeBinomialCaseControl(
         table=table,
-        matching_column="reps",
-        status_column="diff",
+        matching_column=matching_ids.name,
+        status_column=groups.name,
         metadata=metadata,
         reference_status=reference_group,
         **sampler_args)
@@ -40,7 +41,6 @@ def amplicon_case_control(
         table: biom.Table,
         matching_ids: qiime2.CategoricalMetadataColumn,
         groups: qiime2.CategoricalMetadataColumn,
-        monte_carlo_samples: int = 2000,
         reference_group: str = None,
         cores: int = 1) -> az.InferenceData:
     # Build me a cluster!
@@ -51,7 +51,6 @@ def amplicon_case_control(
     samples = _negative_binomial_case_control(
         table, matching_ids.to_series(),
         groups.to_series(),
-        monte_carlo_samples,
         reference_group)
     return samples
 

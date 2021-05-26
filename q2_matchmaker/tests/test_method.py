@@ -129,7 +129,6 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
         res = amplicon_case_control(
             biom_table,
             matchings, diffs,
-            monte_carlo_samples = 100,
             reference_group = '0',
             cores = 1)
         self.assertIsInstance(res, az.InferenceData)
