@@ -199,7 +199,8 @@ class NegativeBinomialCaseControl(BaseModel):
                  mu_scale: float = 10,
                  sigma_scale: float = 1,
                  disp_scale: float = 1,
-                 control_scale: float = 10):
+                 control_loc: float = -5,
+                 control_scale: float = 3):
         model_path = os.path.join(
             os.path.dirname(__file__),
             'assets/nb_case_control_single.stan')
@@ -228,14 +229,16 @@ class NegativeBinomialCaseControl(BaseModel):
             "mu_scale": mu_scale,
             "sigma_scale": sigma_scale,
             "disp_scale": disp_scale,
+            "control_loc": control_loc,
             "control_scale": control_scale
         }
         self.add_parameters(param_dict)
         self.specify_model(
-            params=["mu", "sigma", "disp", "control"],
+            params=["mu", "sigma", "disp", "diff", "control"],
             dims={
                 "mu": ["feature"],
                 "sigma": ["feature"],
+                "diff": ["feature"],
                 "disp": ["feature", "covariate"],
                 "log_lhood": ["tbl_sample", "feature"],
                 "y_predict": ["tbl_sample", "feature"]

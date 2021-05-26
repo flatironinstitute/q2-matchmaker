@@ -100,7 +100,14 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
         nb.fit_model()
         inf = nb.to_inference_object()
         self.assertEqual(inf['posterior']['mu'].shape, (10, 1, 1000))
-        r2_score(inf)
+
+        y_pred = inf['posterior_predictive'].stack(
+            sample=("chain", "draw"))['y_predict'].fillna(0).values.T
+
+        r2 = az.r2_score(table.values, y_pred)
+
+        res = r2_score(inf)
+        self.assertGreater(res['r2'], 0.3)
         az.loo(inf)
         az.bfmi(inf)
         az.rhat(inf, var_names=nb.param_names)
