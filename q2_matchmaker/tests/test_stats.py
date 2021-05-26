@@ -1,4 +1,4 @@
-from q2_differential._stats import hotelling_ttest, spherical_test, rank_test
+from q2_matchmaker._stats import hotelling_ttest, spherical_test, rank_test
 import numpy as np
 import unittest
 

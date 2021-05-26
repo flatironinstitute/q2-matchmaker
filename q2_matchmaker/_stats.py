@@ -61,8 +61,7 @@ def spherical_test(X : np.array, p=0.95, center=True):
         X_ = X
     muX = X_.mean(axis=0).reshape(1, -1)
     dists = cdist(X_, muX)
-    r = np.max(dists) / 2   # radius of sphere
-    #r = np.percentile(dists, p) / 2
+    r = np.percentile(dists, p) / 2  # radius of sphere
     p = np.zeros_like(muX)
     d = euclidean(muX, p)
     return d < r, r, d
