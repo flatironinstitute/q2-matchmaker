@@ -4,26 +4,11 @@ from q2_matchmaker._method import (
     amplicon_case_control,
     matching)
 from q2_matchmaker._stan import _case_control_sim
-from skbio.stats.composition import clr, clr_inv, alr_inv
 import biom
 import numpy as np
 import pandas as pd
 import arviz as az
 import pandas.util.testing as pdt
-
-
-def sim_multinomial(N, D, C, depth=1000):
-    """ Simulate Multinomial counts. """
-    counts = np.zeros((N, D))
-    cats = np.arange(C)
-    groups = np.random.choice(cats, size=N)
-    means = np.random.randn(C, D)
-    differentials = np.log((clr_inv(means) / clr_inv(means[0]))[1:])
-    for i in range(N):
-        p = clr_inv(means[groups[i]])
-        n = np.random.poisson(depth)
-        counts[i] = np.random.multinomial(n, p)
-    return counts, groups, differentials
 
 
 class TestMatching(unittest.TestCase):
@@ -89,7 +74,7 @@ class TestMatching(unittest.TestCase):
         ))
 
         matched_metadata = matching(
-            self.metadata, 'Diagnosis', ['Age', 'Sex'])
+            metadata, 'Diagnosis', ['Age', 'Sex'])
         matched_metadata = matched_metadata.to_dataframe()
 
         index = pd.Index(['a1', 'a2', 'a3', 'a4',
@@ -112,7 +97,6 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
 
     def test_amplicon_case_control(self):
         sids = [f's{i}' for i in range(self.N)]
-        oids = [f'f{i}' for i in range(self.D)]
         biom_table = biom.Table(self.table.values.T,
                                 list(self.table.columns),
                                 list(self.table.index))
@@ -127,8 +111,8 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
         samples = amplicon_case_control(
             biom_table,
             matchings, diffs,
-            reference_group = '0',
-            cores = 4)
+            reference_group='0',
+            cores=4)
         self.assertIsInstance(samples, az.InferenceData)
 
 
