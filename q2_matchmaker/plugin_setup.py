@@ -25,8 +25,8 @@ plugin = qiime2.plugin.Plugin(
     version=__version__,
     website="https://github.com/mortonjt/q2-matchmaker",
     citations=[],
-    short_description=('Plugin for case-control differential  abundance '
-                       'analysis via count-based models.'),
+    short_description=('Plugin for case-control differential abundance '
+                       'analysis.'),
     description=('This is a QIIME 2 plugin supporting case-control '
                  'statistical models on feature tables and metadata.'),
     package='q2-matchmaker')
@@ -65,7 +65,7 @@ plugin.methods.register_function(
         ),
         "cores" : ('Number of cores to utilize for parallelism.')
     },
-    name='Negative Binomial Case Control Estimation',
+    name='Case control estimation for amplicon data via Negative Binomial regression.',
     description=("Fits a Negative Binomial model to estimate "
                  "biased log-fold changes on case-control amplicon data."),
     citations=[]
@@ -97,17 +97,14 @@ plugin.methods.register_function(
         'match_columns': ('The confounder covariates to match on.'),
         'prefix': ('A prefix to add to the matching ids'),
     },
-    name='Matching',
+    name='Case-control bipartite matching.',
     description=("Creates matching ids to enable case-control matching."),
     citations=[]
 )
 
 
-plugin.register_formats(MonteCarloTensorFormat, MonteCarloTensorDirectoryFormat,
-                        MatchingFormat, MatchingDirectoryFormat)
-plugin.register_semantic_types(MonteCarloTensor, Matching)
-plugin.register_semantic_type_to_format(
-    MonteCarloTensor, MonteCarloTensorDirectoryFormat)
+plugin.register_formats(MatchingFormat, MatchingDirectoryFormat)
+plugin.register_semantic_types(Matching)
 plugin.register_semantic_type_to_format(
     SampleData[Matching], MatchingDirectoryFormat)
 
