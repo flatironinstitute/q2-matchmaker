@@ -41,10 +41,12 @@ jobs:
         run: pip install git+git://github.com/arviz-devs/arviz.git
 
       - name: Install main qiime2 branch
-        shell: pip install git+git://github.com/qiime2/qiime2.git
+        shell: bash -l {0}
+        run: pip install git+git://github.com/qiime2/qiime2.git
 
       - name: Install working branch of q2_types
-        shell: pip install git+git://github.com/mortonjt/q2-types.git
+        shell: bash -l {0}
+        run: pip install git+git://github.com/mortonjt/q2-types.git
 
       - name: Install q2-matchmaker
         shell: bash -l {0}
