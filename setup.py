@@ -19,7 +19,8 @@ n    Programming Language :: Python :: 3.5
 """
 classifiers = [s.strip() for s in classes.split('\n') if s]
 
-description = ('QIIME2 plugin for Case-Control Differential Abundance Analysis.')
+description = ('QIIME2 plugin for Case-Control '
+               'Differential Abundance Analysis.')
 
 
 setup(name='q2-matchmaker',
@@ -43,5 +44,4 @@ setup(name='q2-matchmaker',
           "q2_matchmaker": ['assets/nb_case_control.stan'],
       },
       scripts=glob('scripts/*'),
-      classifiers=classifiers,
-)
+      classifiers=classifiers)
