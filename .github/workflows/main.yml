@@ -52,9 +52,9 @@ jobs:
         shell: bash -l {0}
         run: pip install -e .[dev]
 
-      - name: Install cmdstanpy
+      - name: Install working branch of birdman
         shell: bash -l {0}
-        run: pip install cmdstanpy
+        run: pip install git+git://github.com/gibsramen/BIRDMAn.git
 
       - name: Install cmdstan
         shell: bash -l {0}

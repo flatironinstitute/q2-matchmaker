@@ -1,17 +1,11 @@
 
-import unittest
 import numpy as np
-from q2_matchmaker._stan import (
-    _case_control_sim, _case_control_full,
-    _case_control_data, _case_control_single,
-    NegativeBinomialCaseControl
-)
+from q2_matchmaker._stan import NegativeBinomialCaseControl
+from q2_matchmaker._stan import _case_control_sim
 from biom import Table
 from birdman.diagnostics import r2_score
-from dask.distributed import wait
 import arviz as az
 from dask.distributed import Client, LocalCluster
-import dask
 
 # from dask_jobqueue import SLURMCluster
 # import dask
@@ -37,7 +31,7 @@ biom_table = Table(table.values.T,
 #                        env_extra=["export TBB_CXX_TYPE=gcc"],
 #                        queue='ccb')
 
-dask_args={'n_workers': 5, 'threads_per_worker': 2}
+dask_args = {'n_workers': 5, 'threads_per_worker': 2}
 cluster = LocalCluster(**dask_args)
 cluster.scale(dask_args['n_workers'])
 client = Client(cluster)

@@ -1,23 +1,18 @@
 import importlib
 import qiime2.plugin
 import qiime2.sdk
-from qiime2.plugin import (Str, Properties, Int, Float,  Metadata, Bool, List,
+from qiime2.plugin import (Str, Int, List,
                            MetadataColumn, Categorical)
 from q2_matchmaker import __version__
 from q2_matchmaker._type import Matching
 from q2_matchmaker._format import MatchingFormat, MatchingDirectoryFormat
 from q2_types.feature_data._type import MonteCarloTensor
-from q2_types.feature_data._format import (
-    MonteCarloTensorFormat, MonteCarloTensorDirectoryFormat
-)
 from q2_matchmaker._method import (
     amplicon_case_control,
     matching
 )
 from q2_types.feature_table import FeatureTable, Frequency
-from q2_types.ordination import PCoAResults
 from q2_types.sample_data import SampleData
-import xarray as xr
 
 
 plugin = qiime2.plugin.Plugin(
@@ -55,7 +50,7 @@ plugin.methods.register_function(
     parameter_descriptions={
         'matching_ids': ('The matching ids to link case-control samples '),
         'groups': ('The categorical sample metadata column to test for '
-                     'matchmaker abundance across.'),
+                   'matchmaker abundance across.'),
         "monte_carlo_samples": (
             'Number of monte carlo samples to draw from '
             'posterior distribution.'
@@ -63,9 +58,10 @@ plugin.methods.register_function(
         "reference_group": (
             'Reference category to compute log-fold change from.'
         ),
-        "cores" : ('Number of cores to utilize for parallelism.')
+        "cores": ('Number of cores to utilize for parallelism.')
     },
-    name='Case control estimation for amplicon data via Negative Binomial regression.',
+    name=('Case control estimation for amplicon data via '
+          'Negative Binomial regression.'),
     description=("Fits a Negative Binomial model to estimate "
                  "biased log-fold changes on case-control amplicon data."),
     citations=[]
@@ -77,8 +73,8 @@ plugin.methods.register_function(
     inputs={},
     parameters={
         'sample_metadata': qiime2.plugin.Metadata,
-        'status' : Str,
-        'match_columns' : List[Str],
+        'status': Str,
+        'match_columns': List[Str],
         'prefix': Str
     },
     outputs=[
