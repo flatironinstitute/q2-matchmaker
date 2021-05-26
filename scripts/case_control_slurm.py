@@ -89,7 +89,6 @@ samples = _negative_binomial_case_control(
     chains=args.chains
 )
 
-
 # Get summary statistics
 summary_stats = r2_score(samples)
 
