@@ -127,7 +127,7 @@ class NegativeBinomialCaseControl(BaseModel):
             "y": table.matrix_data.todense().T.astype(int),
             "D": table.shape[0],                 # number of features
             "N": table.shape[1],                 # number of samples
-            'C': int(max(case_ids) + 1),        # number of controls
+            'C': int(max(case_ids) + 1),         # number of controls
             'depth': np.log(table.sum(axis='sample')),
             'cc_bool': list(map(int, case_member)),
             'cc_ids': list(map(int, case_ids + 1))

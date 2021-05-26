@@ -7,7 +7,7 @@ from q2_matchmaker._matching import _matchmaker
 from q2_matchmaker._stan import NegativeBinomialCaseControl
 from gneiss.util import match
 from dask.distributed import Client, LocalCluster
-from typing import List, Dict
+from typing import List
 
 
 def _negative_binomial_case_control(
@@ -41,10 +41,10 @@ def amplicon_case_control(
         reference_group: str = None,
         cores: int = 1) -> az.InferenceData:
     # Build me a cluster!
-    dask_args={'n_workers': cores, 'threads_per_worker': 1}
+    dask_args = {'n_workers': cores, 'threads_per_worker': 1}
     cluster = LocalCluster(**dask_args)
     cluster.scale(dask_args['n_workers'])
-    client = Client(cluster)
+    Client(cluster)
     samples = _negative_binomial_case_control(
         table, matching_ids.to_series(),
         groups.to_series(),

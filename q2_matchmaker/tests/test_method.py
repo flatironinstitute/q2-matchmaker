@@ -4,13 +4,11 @@ from q2_matchmaker._method import (
     amplicon_case_control,
     matching)
 from q2_matchmaker._stan import _case_control_sim
-from skbio.stats.composition import clr_inv
+from skbio.stats.composition import clr, clr_inv, alr_inv
 import biom
 import numpy as np
 import pandas as pd
-import xarray as xr
 import arviz as az
-from scipy.stats import pearsonr
 import pandas.util.testing as pdt
 
 
@@ -108,9 +106,9 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
 
     def setUp(self):
         np.random.seed(0)
-        self.N, self.D = 50, 4
+        self.N, self.D = 50, 3
         self.table, self.metadata, self.diff = _case_control_sim(
-            n=50, d=4, depth=100)
+            n=self.N, d=self.D, depth=100)
 
     def test_amplicon_case_control(self):
         sids = [f's{i}' for i in range(self.N)]
@@ -126,12 +124,12 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
             pd.Series(list(map(str, self.metadata['diff'])),
                       index=pd.Index(sids, name='id'),
                       name='n'))
-        res = amplicon_case_control(
+        samples = amplicon_case_control(
             biom_table,
             matchings, diffs,
             reference_group = '0',
-            cores = 1)
-        self.assertIsInstance(res, az.InferenceData)
+            cores = 4)
+        self.assertIsInstance(samples, az.InferenceData)
 
 
 if __name__ == '__main__':
