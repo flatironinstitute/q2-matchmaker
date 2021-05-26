@@ -11,11 +11,9 @@ from q2_types.feature_data._format import (
     MonteCarloTensorFormat, MonteCarloTensorDirectoryFormat
 )
 from q2_matchmaker._method import (
-    negative_binomial_case_control,
-    parallel_negative_binomial_case_control,
-    slurm_negative_binomial_case_control, matching
+    amplicon_case_control,
+    matching
 )
-from q2_matchmaker._visualizer import rankplot
 from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.ordination import PCoAResults
 from q2_types.sample_data import SampleData
@@ -35,7 +33,7 @@ plugin = qiime2.plugin.Plugin(
 
 
 plugin.methods.register_function(
-    function=negative_binomial_case_control,
+    function=amplicon_case_control,
     inputs={'table': FeatureTable[Frequency]},
     parameters={
         'matching_ids': MetadataColumn[Categorical],
@@ -45,14 +43,14 @@ plugin.methods.register_function(
         'cores': Int
     },
     outputs=[
-        ('differentials', MonteCarloTensor)
+        ('posterior', MonteCarloTensor)
     ],
     input_descriptions={
         "table": "Input table of counts.",
     },
     output_descriptions={
-        'matchmakers': ('Output posterior matchmakers learned from the '
-                          'Negative Binomial model.'),
+        'posterior': ('Output posterior differentials learned from the '
+                      'Negative Binomial model.'),
     },
     parameter_descriptions={
         'matching_ids': ('The matching ids to link case-control samples '),
@@ -69,7 +67,7 @@ plugin.methods.register_function(
     },
     name='Negative Binomial Case Control Estimation',
     description=("Fits a Negative Binomial model to estimate "
-                 "biased log-fold change"),
+                 "biased log-fold changes on case-control amplicon data."),
     citations=[]
 )
 

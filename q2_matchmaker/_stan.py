@@ -183,6 +183,11 @@ class NegativeBinomialCaseControl(BaseModel):
         Standard deviation for prior distribution for disp
     control_scale : float
         Standard deviation for prior distribution for control
+
+    Notes
+    -----
+    The default priors are choosen for amplicon data.
+    Make sure to adjust for other omics datasets.
     """
     def __init__(self,
                  table: biom.table.Table,

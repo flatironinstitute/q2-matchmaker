@@ -47,7 +47,6 @@ nb = NegativeBinomialCaseControl(
     matching_column="reps",
     status_column="diff",
     metadata=metadata,
-    #tmp_directory='/scratch',
     reference_status='1',
     num_warmup=1000,
     mu_scale=1,

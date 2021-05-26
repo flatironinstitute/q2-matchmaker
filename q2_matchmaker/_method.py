@@ -6,45 +6,38 @@ import biom
 from q2_matchmaker._stan import (
     _case_control_full, _case_control_data,
     _case_control_single)
-from q2_differential._matching import _matchmaker
+from q2_matchmaker._matching import _matchmaker
+from q2_matchmaker._stan import NegativeBinomialCaseControl
+from gneiss.util import match
+from dask.distributed import Client, LocalCluster
 from typing import List, Dict
-from birdman.diagnostics import r2_score
 
 
 def _negative_binomial_case_control(
         table, matching_ids,
         groups, monte_carlo_samples,
-        reference_group):
+        reference_group, **sampler_args):
     if reference_group is None:
         reference_group = groups.iloc[0]
     groups_ = (groups == reference_group).astype(np.int64)
-    idx = list(set(metadata.index) & set(table.index))
-    counts = table.loc[idx]
-    metadata = metadata.loc[idx]
-    depth = counts.sum(axis=1)
+    metadata = pd.DataFrame({'diff': groups_, 'reps': matching_ids})
+    table, metadata = match(table, metadata)
     nb = NegativeBinomialCaseControl(
-        table=biom_table,
+        table=table,
         matching_column="reps",
         status_column="diff",
-        metadata=self.metadata,
-        reference_status='1',
-        chains=1,
-        seed=42)
+        metadata=metadata,
+        reference_status=reference_group,
+        **sampler_args)
     # Fit the model and extract diagnostics
+    nb.compile_model()
     nb.fit_model()
-    inf = nb.to_inference_object()
-    res = dict(
-        r2=r2_score(inf),
-        loo=az.loo(inf),
-        bfmi=az.bfmi(inf),
-        rhat=az.rhat(inf, var_names=nb.param_names),
-        ess=az.ess(inf, var_names=nb.param_names)
-    )
-    return samples, res
+    samples = nb.to_inference_object()
+    return samples
 
 
-def negative_binomial_case_control(
-        table: pd.DataFrame,
+def amplicon_case_control(
+        table: biom.Table,
         matching_ids: qiime2.CategoricalMetadataColumn,
         groups: qiime2.CategoricalMetadataColumn,
         monte_carlo_samples: int = 2000,
@@ -55,7 +48,7 @@ def negative_binomial_case_control(
     cluster = LocalCluster(**dask_args)
     cluster.scale(dask_args['n_workers'])
     client = Client(cluster)
-    samples, res = _negative_binomial_case_control(
+    samples = _negative_binomial_case_control(
         table, matching_ids.to_series(),
         groups.to_series(),
         monte_carlo_samples,
