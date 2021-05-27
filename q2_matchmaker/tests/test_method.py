@@ -1,7 +1,7 @@
 import unittest
 import qiime2
 from q2_matchmaker._method import (
-    amplicon_case_control,
+    negative_binomial_case_control,
     matching)
 from q2_matchmaker._stan import _case_control_sim
 import biom
@@ -95,7 +95,7 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
         self.table, self.metadata, self.diff = _case_control_sim(
             n=self.N, d=self.D, depth=100)
 
-    def test_amplicon_case_control(self):
+    def test_negative_binomial_case_control(self):
         sids = [f's{i}' for i in range(self.N)]
         biom_table = biom.Table(self.table.values.T,
                                 list(self.table.columns),
@@ -108,7 +108,7 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
             pd.Series(list(map(str, self.metadata['diff'])),
                       index=pd.Index(sids, name='id'),
                       name='n'))
-        samples = amplicon_case_control(
+        samples = negative_binomial_case_control(
             biom_table,
             matchings, diffs,
             reference_group='0',

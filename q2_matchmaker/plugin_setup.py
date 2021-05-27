@@ -8,7 +8,7 @@ from q2_matchmaker._type import Matching
 from q2_matchmaker._format import MatchingFormat, MatchingDirectoryFormat
 from q2_types.feature_data._type import MonteCarloTensor
 from q2_matchmaker._method import (
-    amplicon_case_control,
+    negative_binomial_case_control,
     matching
 )
 from q2_types.feature_table import FeatureTable, Frequency
@@ -28,12 +28,11 @@ plugin = qiime2.plugin.Plugin(
 
 
 plugin.methods.register_function(
-    function=amplicon_case_control,
+    function=negative_binomial_case_control,
     inputs={'table': FeatureTable[Frequency]},
     parameters={
         'matching_ids': MetadataColumn[Categorical],
         'groups': MetadataColumn[Categorical],
-        'monte_carlo_samples': Int,
         'reference_group': Str,
         'cores': Int
     },
@@ -51,10 +50,6 @@ plugin.methods.register_function(
         'matching_ids': ('The matching ids to link case-control samples '),
         'groups': ('The categorical sample metadata column to test for '
                    'matchmaker abundance across.'),
-        "monte_carlo_samples": (
-            'Number of monte carlo samples to draw from '
-            'posterior distribution.'
-        ),
         "reference_group": (
             'Reference category to compute log-fold change from.'
         ),

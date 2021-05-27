@@ -29,12 +29,12 @@ def _negative_binomial_case_control(
         **sampler_args)
     # Fit the model and extract diagnostics
     nb.compile_model()
-    nb.fit_model()
+    nb.fit_model(convert_to_inference=True)
     samples = nb.to_inference_object()
     return samples
 
 
-def amplicon_case_control(
+def negative_binomial_case_control(
         table: biom.Table,
         matching_ids: qiime2.CategoricalMetadataColumn,
         groups: qiime2.CategoricalMetadataColumn,
