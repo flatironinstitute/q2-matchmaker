@@ -55,10 +55,11 @@ plugin.methods.register_function(
         ),
         "cores": ('Number of cores to utilize for parallelism.')
     },
-    name=('Case control estimation for amplicon data via '
+    name=('Case control estimation for sequence count data data via '
           'Negative Binomial regression.'),
     description=("Fits a Negative Binomial model to estimate "
-                 "biased log-fold changes on case-control amplicon data."),
+                 "biased log-fold changes on case-control "
+                 "sequence count data."),
     citations=[]
 )
 
