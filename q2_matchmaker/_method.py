@@ -12,7 +12,7 @@ from typing import List
 
 def _negative_binomial_case_control(
         table, matching_ids,
-        groups, reference_group, **sampler_args):
+        groups, reference_group, chunksize, **sampler_args):
     if reference_group is None:
         reference_group = groups.iloc[0]
     groups_ = (groups == reference_group).astype(np.int64)
@@ -29,7 +29,7 @@ def _negative_binomial_case_control(
         **sampler_args)
     # Fit the model and extract diagnostics
     nb.compile_model()
-    nb.fit_model(convert_to_inference=True)
+    nb.fit_model(chunksize=chunksize, convert_to_inference=True)
     samples = nb.to_inference_object()
     return samples
 

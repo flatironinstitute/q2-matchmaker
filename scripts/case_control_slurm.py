@@ -1,4 +1,4 @@
-import argparse
+0;95;0cimport argparse
 from dask_jobqueue import SLURMCluster
 from dask.distributed import Client
 from biom import load_table
@@ -31,6 +31,9 @@ parser.add_argument(
 parser.add_argument(
     '--chains', help='Number of parallel chains.',
     type=int, required=False, default=4)
+parser.add_argument(
+    '--chunksize', help='Number of features to analyze per process.',
+    type=int, required=False, default=50)
 parser.add_argument(
     '--cores', help='Number of cores per process.',
     type=int, required=False, default=1)
@@ -95,7 +98,8 @@ samples = _negative_binomial_case_control(
     control_loc=-5,
     control_scale=3,
     num_iter=args.monte_carlo_samples,
-    chains=args.chains
+    chains=args.chains,
+    chunksize=args.chunksize
 )
 
 # Save files to output directory
@@ -108,5 +112,5 @@ samples.to_netcdf(posterior_file)
 # Get summary statistics
 # summary_stats = r2_score(samples)
 # summary_file = os.path.join(args.output_directory,
-#                             'summary_statistics.txt')
+pppp#                             'summary_statistics.txt')
 # summary_stats.to_csv(summary_file, sep='\t')
