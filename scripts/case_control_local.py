@@ -37,26 +37,6 @@ if __name__ == "__main__":
         '--cores', help='Number of cores per process.',
         type=int, required=False, default=1)
     parser.add_argument(
-        '--nodes', help='Number of nodes.',
-        type=int, required=False, default=1)
-    parser.add_argument(
-        '--processes', help='Number of processes.',
-        type=int, required=False, default=1)
-    parser.add_argument(
-        '--memory', help='Memory allocation size.',
-        type=str, required=False, default='16GB')
-    parser.add_argument(
-        '--walltime', help='Walltime.', type=str,
-        required=False, default='01:00:00')
-    parser.add_argument(
-        '--interface', help='Interface for communication',
-        type=str, required=False, default='eth0')
-    parser.add_argument(
-        '--queue', help='Queue to submit job to.', type=str, required=True)
-    parser.add_argument(
-        '--local-directory', help='Scratch directory to deposit dask logs.',
-        type=str, required=False, default='/scratch')
-    parser.add_argument(
         '--output-tensor', help='Output tensor.', type=str, required=True)
     args = parser.parse_args()
     print(args)
