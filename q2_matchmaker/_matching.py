@@ -1,7 +1,6 @@
 from scipy.spatial.distance import pdist, squareform
 from scipy.optimize import linear_sum_assignment
 import pandas as pd
-import numpy as np
 
 
 def _standardize(x):

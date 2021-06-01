@@ -3,14 +3,11 @@ import numpy as np
 import pandas as pd
 import arviz as az
 import biom
-from q2_matchmaker._stan import (
-    _case_control_full, _case_control_data,
-    _case_control_single)
 from q2_matchmaker._matching import _matchmaker
 from q2_matchmaker._stan import NegativeBinomialCaseControl
 from gneiss.util import match
 from dask.distributed import Client, LocalCluster
-from typing import List, Dict
+from typing import List
 
 
 def _negative_binomial_case_control(
@@ -32,22 +29,22 @@ def _negative_binomial_case_control(
         **sampler_args)
     # Fit the model and extract diagnostics
     nb.compile_model()
-    nb.fit_model()
+    nb.fit_model(convert_to_inference=True)
     samples = nb.to_inference_object()
     return samples
 
 
-def amplicon_case_control(
+def negative_binomial_case_control(
         table: biom.Table,
         matching_ids: qiime2.CategoricalMetadataColumn,
         groups: qiime2.CategoricalMetadataColumn,
         reference_group: str = None,
         cores: int = 1) -> az.InferenceData:
     # Build me a cluster!
-    dask_args={'n_workers': cores, 'threads_per_worker': 1}
+    dask_args = {'n_workers': cores, 'threads_per_worker': 1}
     cluster = LocalCluster(**dask_args)
     cluster.scale(dask_args['n_workers'])
-    client = Client(cluster)
+    Client(cluster)
     samples = _negative_binomial_case_control(
         table, matching_ids.to_series(),
         groups.to_series(),

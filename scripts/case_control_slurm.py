@@ -38,6 +38,9 @@ parser.add_argument(
     '--nodes', help='Number of nodes.',
     type=int, required=False, default=1)
 parser.add_argument(
+    '--processes', help='Number of processes.',
+    type=int, required=False, default=1)
+parser.add_argument(
     '--memory', help='Memory allocation size.',
     type=str, required=False, default='16GB')
 parser.add_argument(
@@ -85,12 +88,15 @@ samples = _negative_binomial_case_control(
     table,
     metadata[args.matching_ids],
     metadata[args.groups],
+    reference_group=args.reference_group,
+    mu_scale=1,
+    sigma_scale=1,
+    disp_scale=1,
+    control_loc=-5,
+    control_scale=3,
     num_iter=args.monte_carlo_samples,
     chains=args.chains
 )
-
-# Get summary statistics
-summary_stats = r2_score(samples)
 
 # Save files to output directory
 os.mkdir(args.output_directory)
@@ -98,6 +104,9 @@ posterior_file = os.path.join(args.output_directory,
                               'differential_posterior.nc')
 samples.to_netcdf(posterior_file)
 
-summary_file = os.path.join(args.output_directory,
-                            'summary_statistics.txt')
-summary_stats.to_csv(summary_file, sep='\t')
+
+# Get summary statistics
+# summary_stats = r2_score(samples)
+# summary_file = os.path.join(args.output_directory,
+#                             'summary_statistics.txt')
+# summary_stats.to_csv(summary_file, sep='\t')
