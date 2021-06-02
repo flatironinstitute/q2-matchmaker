@@ -114,6 +114,9 @@ def _case_control_full(counts : np.array,
 def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                          case_member : np.array,
                          depth : int,
+                         mu_scale : float=10,
+                         control_loc : float=0,
+                         control_scale : float=10,
                          mc_samples : int=1000,
                          chains : int=1) -> dict:
     case_encoder = LabelEncoder()
@@ -131,10 +134,11 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
         'y' : list(map(int, counts.astype(np.int64))),
         'cc_bool' : list(map(int, case_member)),
         'cc_ids' : list(map(int, case_ids + 1)),
-        'mu_scale': 10,
+        'mu_scale': mu_scale,
         'sigma_scale': 1,
         'disp_scale': 1,
-        'control_scale': 10,
+        'control_loc': control_loc,
+        'control_scale': control_scale,
     }
     with tempfile.TemporaryDirectory() as temp_dir_name:
         data_path = os.path.join(temp_dir_name, 'data.json')

@@ -9,6 +9,7 @@
   real mu_scale;
   real sigma_scale;
   real disp_scale;
+  real control_loc;
   real control_scale;
 }
 
@@ -28,7 +29,8 @@ model {
   sigma ~ normal(0., sigma_scale);
   mu ~ normal(0, mu_scale);
   diff ~ normal(mu, sigma);
-  control ~ normal(0, control_scale); // vague normal prior for controls
+  // vague normal prior for controls
+  control ~ normal(control_loc, control_scale);
 
   // generating counts
   for (n in 1:N){

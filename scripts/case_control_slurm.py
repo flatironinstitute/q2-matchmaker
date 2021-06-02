@@ -29,12 +29,20 @@ if __name__ == '__main__':
     parser.add_argument(
         '--reference-group', help='The name of the reference group.', required=True)
     parser.add_argument(
-        '--test-biom-table', help='Biom table of counts.', required=False, default=None)
+        '--mu-scale', help='Scale of differentials.',
+        type=float, required=False, default=10)
     parser.add_argument(
-        '--test-metadata-file', help='Sample metadata file.', required=False, default=None)
+        '--control-loc', help='Center of control log proportions.',
+        type=float, required=False, default=None)
+    parser.add_argument(
+        '--control-scale', help='Scale of control log proportions.',
+        type=float, required=False, default=10)
     parser.add_argument(
         '--monte-carlo-samples', help='Number of monte carlo samples.',
         type=int, required=False, default=1000)
+    parser.add_argument(
+        '--chains', help='Number of MCMC chains.',
+        type=int, required=False, default=4)
     parser.add_argument(
         '--cores', help='Number of cores per process.', type=int, required=False, default=1)
     parser.add_argument(
@@ -98,16 +106,25 @@ if __name__ == '__main__':
     metadata = pd.DataFrame({'cc_ids': matching_ids,
                              'groups': groups})
     metadata['groups'] = (metadata['groups'] == args.reference_group).astype(np.int64)
-
     # take intersections
     counts, metadata = match(counts, metadata)
+    if args.control_loc is None:
+        # Dirichilet-like prior
+        control_loc = np.log(1 / counts.shape[1])
+    else:
+        control_loc = args.control_loc
     depth = counts.sum(axis=1)
     pfunc = lambda x: _case_control_single(
         x, case_ctrl_ids=metadata['cc_ids'],
         case_member=metadata['groups'],
-        depth=depth, mc_samples=args.monte_carlo_samples)
+        depth=depth, mc_samples=args.monte_carlo_samples,
+        chains=args.chains,
+        mu_scale=args.mu_scale,
+        control_loc=control_loc,
+        control_loc=args.control_scale)
 
-    dcounts = da.from_array(counts.values.T, chunks=(args.chunksize, counts.shape[0]))
+    dcounts = da.from_array(counts.values.T,
+                            chunks=(args.chunksize, counts.shape[0]))
 
     res = []
     for d in range(dcounts.shape[0]):
