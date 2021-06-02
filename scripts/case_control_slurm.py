@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import xarray as xr
 from gneiss.util import match
-from q2_differential._stan import _case_control_single, merge_inferences
+from q2_matchmaker._stan import _case_control_single, merge_inferences
 import time
 import logging
 import os
@@ -38,6 +38,9 @@ parser.add_argument(
 parser.add_argument(
     '--cores', help='Number of cores per process.', type=int, required=False, default=1)
 parser.add_argument(
+    '--chunksize', help='Number of features to analyze per process.',
+    type=int, required=False, default=50)
+parser.add_argument(
     '--processes', help='Number of processes per node.', type=int, required=False, default=1)
 parser.add_argument(
     '--nodes', help='Number of nodes.', type=int, required=False, default=1)
@@ -48,6 +51,9 @@ parser.add_argument(
 parser.add_argument(
     '--interface', help='Interface for communication', type=str, required=False, default='eth0')
 parser.add_argument(
+    '--jobs-extra', help='Comma delimited list of extra job arguments.',
+    type=str, required=False, default='--constraint=rome')
+parser.add_argument(
     '--queue', help='Queue to submit job to.', type=str, required=True)
 parser.add_argument(
     '--local-directory', help='Scratch directory to deposit dask logs.', type=str, required=False,
@@ -57,18 +63,23 @@ parser.add_argument(
     '--output-directory', help=('Output directory to store posterior distributions '
                                 ' and diagnostics.'),
     type=str, required=True)
+
 args = parser.parse_args()
 print(args)
+
+dask.config.set({'admin.tick.limit': '1h'})
+dask.config.set({"distributed.comm.timeouts.tcp": "300s"})
 cluster = SLURMCluster(cores=args.cores,
                        processes=args.processes,
                        memory=args.memory,
                        walltime=args.walltime,
                        interface=args.interface,
                        nanny=True,
-                       death_timeout='300s',
+                       death_timeout='600s',
                        local_directory=args.local_directory,
                        shebang='#!/usr/bin/env bash',
                        env_extra=["export TBB_CXX_TYPE=gcc"],
+                       jobs_extra=args.jobs_extra.split(',')
                        queue=args.queue)
 print(cluster.job_script())
 cluster.scale(jobs=args.nodes)
@@ -91,13 +102,12 @@ metadata['groups'] = (metadata['groups'] == args.reference_group).astype(np.int6
 # take intersections
 counts, metadata = match(counts, metadata)
 
-depth = counts.sum(axis=1)
 pfunc = lambda x: _case_control_single(
     x, case_ctrl_ids=metadata['cc_ids'],
     case_member=metadata['groups'],
     depth=depth, mc_samples=args.monte_carlo_samples)
 
-dcounts = da.from_array(counts.values.T, chunks=(counts.T.shape))
+dcounts = da.from_array(counts.values.T, chunks=(chunksize))
 
 res = []
 for d in range(dcounts.shape[0]):
@@ -106,43 +116,8 @@ for d in range(dcounts.shape[0]):
 # Retrieve InferenceData objects and save them to disk
 futures = dask.persist(*res)
 resdf = dask.compute(futures)
-print('Runs complete')
 inf_list = list(resdf[0])
-cv_data = xr.concat([cv.to_xarray() for cv in cv_data], dim="feature")
 coords={'features' : counts.columns,
         'monte_carlo_samples' : np.arange(args.monte_carlo_samples)}
 samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
-print('Merging results')
-# Get summary statistics
-#loo = az.loo(samples)
-#bfmi = az.bfmi(samples)
-param_names = ['mu', 'sigma', 'diff', 'disp', 'control']
-#rhat = az.rhat(samples, var_names=param_names)
-#ess = az.ess(samples, var_names=param_names)
-
-# Get Bayesian r2
-y_pred = samples['posterior_predictive'].stack(
-    sample=("chain", "draw"))['y_predict'].fillna(0).values.T
-r2 = az.r2_score(counts.values, y_pred)
-
-summary_stats = r2
-#summary_stats.loc['bfmi'] = [bfmi.mean().values, bfmi.std().values]
-#summary_stats.loc['r2'] = r2.values
-
-# Save everything to a file
-os.mkdir(args.output_directory)
-posterior_file = os.path.join(args.output_directory,
-                              'differential_posterior.nc')
-cv_file = os.path.join(args.output_directory,
-                              'cross_validation.nc')
-summary_file = os.path.join(args.output_directory,
-                            'summary_statistics.txt')
-# rhat_file = os.path.join(args.output_directory, 'rhat.nc')
-# ess_file = os.path.join(args.output_directory, 'ess.nc')
-# bfmi_file = os.path.join(args.output_directory, 'bfmi.nc')
 samples.to_netcdf(posterior_file)
-#rhat.to_netcdf(rhat_file)
-#ess.to_netcdf(ess_file)
-#bfmi.to_netcdf(bfmi_file)
-summary_stats.to_csv(summary_file, sep='\t')
-cv_data.to_netcdf(cv_file)
