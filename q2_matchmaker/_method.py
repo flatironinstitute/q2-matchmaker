@@ -4,10 +4,10 @@ import pandas as pd
 import xarray as xr
 import arviz as az
 import biom
-from q2_differential._stan import (
+from q2_matchmaker._stan import (
     _case_control_full, _case_control_data,
     _case_control_single)
-from q2_differential._matching import _matchmaker
+from q2_matchmaker._matching import _matchmaker
 from typing import List
 
 

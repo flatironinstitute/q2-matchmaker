@@ -51,7 +51,7 @@ parser.add_argument(
 parser.add_argument(
     '--interface', help='Interface for communication', type=str, required=False, default='eth0')
 parser.add_argument(
-    '--jobs-extra', help='Comma delimited list of extra job arguments.',
+    '--job-extra', help='Comma delimited list of extra job arguments.',
     type=str, required=False, default='--constraint=rome')
 parser.add_argument(
     '--queue', help='Queue to submit job to.', type=str, required=True)
@@ -79,7 +79,7 @@ cluster = SLURMCluster(cores=args.cores,
                        local_directory=args.local_directory,
                        shebang='#!/usr/bin/env bash',
                        env_extra=["export TBB_CXX_TYPE=gcc"],
-                       jobs_extra=args.jobs_extra.split(',')
+                       job_extra=args.job_extra.split(','),
                        queue=args.queue)
 print(cluster.job_script())
 cluster.scale(jobs=args.nodes)
@@ -101,13 +101,13 @@ metadata['groups'] = (metadata['groups'] == args.reference_group).astype(np.int6
 
 # take intersections
 counts, metadata = match(counts, metadata)
-
+depth = counts.sum(axis=1)
 pfunc = lambda x: _case_control_single(
     x, case_ctrl_ids=metadata['cc_ids'],
     case_member=metadata['groups'],
     depth=depth, mc_samples=args.monte_carlo_samples)
 
-dcounts = da.from_array(counts.values.T, chunks=(chunksize))
+dcounts = da.from_array(counts.values.T, chunks=(args.chunksize))
 
 res = []
 for d in range(dcounts.shape[0]):
@@ -120,4 +120,7 @@ inf_list = list(resdf[0])
 coords={'features' : counts.columns,
         'monte_carlo_samples' : np.arange(args.monte_carlo_samples)}
 samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
+os.mkdir(args.output_directory)
+posterior_file = os.path.join(args.output_directory,
+                              'differential_posterior.nc')
 samples.to_netcdf(posterior_file)
