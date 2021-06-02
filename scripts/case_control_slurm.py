@@ -9,6 +9,7 @@ import time
 import logging
 from gneiss.util import match
 import pandas as pd
+import numpy as np
 from birdman.diagnostics import r2_score
 import os
 
@@ -27,6 +28,16 @@ if __name__ == '__main__':
     parser.add_argument(
         '--reference-group', help='The name of the reference group.',
         required=True)
+    parser.add_argument(
+        '--diff-scale', help='Scale of differential.',
+        type=float, required=False, default=5)
+    parser.add_argument(
+        '--control-loc',
+        help=('Center of intercept log abundances. '),
+        type=float, required=False, default=None)
+    parser.add_argument(
+        '--control-scale', help='Scale of intercept log abundances.',
+        type=float, required=False, default=10)
     parser.add_argument(
         '--monte-carlo-samples', help='Number of monte carlo samples.',
         type=int, required=False, default=1000)
@@ -55,6 +66,9 @@ if __name__ == '__main__':
         '--interface', help='Interface for communication',
         type=str, required=False, default='eth0')
     parser.add_argument(
+        '--job-extra', help='Comma delimited list of additional slurm arguments.',
+        type=str, required=False, default='--constraint=rome')
+    parser.add_argument(
         '--queue', help='Queue to submit job to.', type=str, required=True)
     parser.add_argument(
         '--local-directory', help='Scratch directory to deposit dask logs.',
@@ -80,6 +94,7 @@ if __name__ == '__main__':
                            local_directory=args.local_directory,
                            shebang='#!/usr/bin/env bash',
                            env_extra=["export TBB_CXX_TYPE=gcc"],
+                           job_extra=args.job_extra.split(','),
                            queue=args.queue)
     print(cluster.job_script())
     cluster.scale(jobs=args.nodes)
@@ -99,11 +114,11 @@ if __name__ == '__main__':
         metadata[args.matching_ids],
         metadata[args.groups],
         reference_group=args.reference_group,
-        mu_scale=1,
+        mu_scale=args.diff_scale,
         sigma_scale=1,
         disp_scale=1,
-        control_loc=-5,
-        control_scale=3,
+        control_loc=args.control_loc,
+        control_scale=args.control_scale,
         num_iter=args.monte_carlo_samples,
         chains=args.chains,
         chunksize=args.chunksize
