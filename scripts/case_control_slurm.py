@@ -46,9 +46,6 @@ if __name__ == '__main__':
     parser.add_argument(
         '--cores', help='Number of cores per process.', type=int, required=False, default=1)
     parser.add_argument(
-        '--chunksize', help='Number of features to analyze per process.',
-        type=int, required=False, default=50)
-    parser.add_argument(
         '--processes', help='Number of processes per node.', type=int, required=False, default=1)
     parser.add_argument(
         '--nodes', help='Number of nodes.', type=int, required=False, default=1)
@@ -73,7 +70,6 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
-    print(args)
 
     dask.config.set({'admin.tick.limit': '1h'})
     dask.config.set({"distributed.comm.timeouts.tcp": "300s"})
@@ -89,6 +85,7 @@ if __name__ == '__main__':
                            env_extra=["export TBB_CXX_TYPE=gcc"],
                            job_extra=args.job_extra.split(','),
                            queue=args.queue)
+    print(args)
     print(cluster.job_script())
     cluster.scale(jobs=args.nodes)
     client = Client(cluster)
@@ -121,10 +118,10 @@ if __name__ == '__main__':
         chains=args.chains,
         mu_scale=args.mu_scale,
         control_loc=control_loc,
-        control_loc=args.control_scale)
+        control_scale=args.control_scale)
 
     dcounts = da.from_array(counts.values.T,
-                            chunks=(args.chunksize, counts.shape[0]))
+                            chunks=(1, -1))
 
     res = []
     for d in range(dcounts.shape[0]):
