@@ -11,7 +11,7 @@ import os
 from skbio.stats.composition import ilr_inv
 import matplotlib.pyplot as plt
 import pickle
-from cmdstanpy import CmdStanModel
+from cmdstanpy import CmdStanModel, CmdStanMCMC
 from sklearn.preprocessing import LabelEncoder
 import dask_jobqueue
 import tempfile
@@ -85,12 +85,12 @@ def _case_control_full(counts : np.array,
                        case_member : np.array,
                        depth : int,
                        mc_samples : int=1000,
-                       seed : int = None) -> dict:
+                       seed : int = None) -> (CmdStanModel, CmdStanMCMC):
     dat = _case_control_data(counts, case_ctrl_ids,
                              case_member, depth)
     #initialization for controls
     init_ctrl = alr(multiplicative_replacement(
-        closure(counts[~(case_member).astype(np.bool)])))
+        closure(counts[~np.array(dat['cc_bool'])] + 1)))
     # Actual stan modeling
     code = os.path.join(os.path.dirname(__file__),
                         'assets/nb_case_control.stan')
@@ -99,26 +99,20 @@ def _case_control_full(counts : np.array,
         data_path = os.path.join(temp_dir_name, 'data.json')
         with open(data_path, 'w') as f:
             json.dump(dat, f)
-        # see https://mattocci27.github.io/assets/poilog.html
-        # for recommended parameters for poisson log normal
-        prior = sm.sample(data=data_path, iter_sampling=100, chains=4,
-                          iter_warmup=1)
         posterior = sm.sample(data=data_path, iter_sampling=mc_samples,
                               chains=4, iter_warmup=mc_samples // 2,
-                              inits={'control': init_ctrl}, seed = seed,
+                              inits={'control': init_ctrl},
+                              seed = seed,
                               adapt_delta = 0.95, max_treedepth = 20)
         posterior.diagnose()
-        return sm, posterior, prior
+        return sm, posterior
 
 
 def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                          case_member : np.array,
                          depth : int,
                          mc_samples : int=1000,
-                         chains : int=1,
-                         test_counts : np.array = None,
-                         test_case_ctrl_ids : np.array = None,
-                         test_case_member : np.array = None) -> dict:
+                         chains : int=1) -> (CmdStanModel, CmdStanMCMC):
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
@@ -149,38 +143,10 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                         chains=chains, iter_warmup=mc_samples // 2,
                         adapt_delta = 0.9, max_treedepth = 20)
         fit.diagnose()
-
-        # if there is test data, assemble out-of-distribution statistics
-        if ((test_counts is not None) and
-            (test_case_ctrl_ids is not None) and
-            (test_case_member is not None)):
-            test_case_ids = case_encoder.transform(test_case_ctrl_ids)
-            test_dat = {
-                'N' : len(test_counts),
-                'C' : int(max(test_case_ids) + 1),
-                'depth' : list(np.log(depth)),
-                'y' : list(map(int, test_counts.astype(np.int64))),
-                'cc_bool' : list(map(int, test_case_member)),
-                'cc_ids' : list(map(int, test_case_ids + 1)),
-                'mu_scale': 10,
-                'sigma_scale': 1,
-                'disp_scale': 1,
-                'control_scale': 10,
-            }
-            new_quantities = sm.generate_quantities(
-                data=test_dat, mcmc_sample=fit)
-            # grab all columns with log_lhood
-            df = new_quantities.generated_quantities_pd
-            idx = list(map(lambda x: 'log_lhood' in x, df.columns))
-            cv_loglike = new_quantities.generated_quantities_pd[idx]
-        else:
-            cv_loglike = None
-
         inf = az.from_cmdstanpy(fit,
                                 posterior_predictive='y_predict',
-                                log_likelihood='log_lhood',
-        )
-        return inf, cv_loglike
+                                log_likelihood='log_lhood')
+        return inf
 
 
 

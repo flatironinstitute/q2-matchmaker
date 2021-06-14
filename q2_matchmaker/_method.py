@@ -4,10 +4,10 @@ import pandas as pd
 import xarray as xr
 import arviz as az
 import biom
-from q2_differential._stan import (
+from q2_matchmaker._stan import (
     _case_control_full, _case_control_data,
     _case_control_single)
-from q2_differential._matching import _matchmaker
+from q2_matchmaker._matching import _matchmaker
 from typing import List
 
 
@@ -15,8 +15,8 @@ def negative_binomial_case_control(
         table: pd.DataFrame,
         matching_ids: qiime2.CategoricalMetadataColumn,
         groups: qiime2.CategoricalMetadataColumn,
+        reference_group : str,
         monte_carlo_samples: int = 2000,
-        reference_group : str = 'TD',
         cores : int = 1) -> az.InferenceData:
 
     metadata = pd.DataFrame({'cc_ids': matching_ids.to_series(),
@@ -31,7 +31,7 @@ def negative_binomial_case_control(
     dat = _case_control_data(counts.values,
                              metadata['cc_ids'].values,
                              metadata['groups'].values, depth)
-    _, posterior, prior = _case_control_full(
+    _, posterior = _case_control_full(
         counts=counts.values,
         case_ctrl_ids=metadata['cc_ids'].values,
         case_member=metadata['groups'].values,
@@ -41,7 +41,7 @@ def negative_binomial_case_control(
         'observed_data': dat,
         'coords': {'diff': list(table.columns[1:])}
     }
-    samples = az.from_cmdstanpy(posterior=posterior, prior=prior, **opts)
+    samples = az.from_cmdstanpy(posterior=posterior, **opts)
     return samples
 
 
