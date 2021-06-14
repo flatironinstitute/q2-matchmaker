@@ -16,8 +16,7 @@ def negative_binomial_case_control(
         matching_ids: qiime2.CategoricalMetadataColumn,
         groups: qiime2.CategoricalMetadataColumn,
         reference_group : str,
-        monte_carlo_samples: int = 2000,
-        cores : int = 1) -> az.InferenceData:
+        monte_carlo_samples: int = 2000) -> az.InferenceData:
 
     metadata = pd.DataFrame({'cc_ids': matching_ids.to_series(),
                              'groups': groups.to_series()})
