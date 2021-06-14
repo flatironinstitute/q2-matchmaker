@@ -32,12 +32,6 @@ git clone https://github.com/flatironinstitute/q2-matchmaker.git
 cd q2-matchmaker
 source install.sh
 pip install -e .
-```
-
-
-Then install q2-differential
-```
-pip install git+https://github.com/mortonjt/q2-differential.git
 qiime dev refresh-cache
 ```
 
