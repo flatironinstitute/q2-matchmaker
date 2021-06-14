@@ -111,7 +111,7 @@ Attributes:
 ```
 Here, we had 100 biological samples, and 10 microbial species.  The differentials are in an ALR representation with the first species being the reference frame.
 
-The most relevant variable here is `diff` which measures the differentials between the cases and the controls.  You can extract that via `inf.posterior['diff]`.
+The most relevant variable here is `diff` which measures the differentials between the cases and the controls.  You can extract that via `inf.posterior['diff']`.
 
 Otherwise, make sure to check out [Arviz](https://arviz-devs.github.io/arviz/index.html), since it provides an extremely comprehensive API for diagnostics, so it is recommended to check it out.
 
