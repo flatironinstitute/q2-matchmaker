@@ -36,7 +36,8 @@ plugin.methods.register_function(
     parameters={
         'matching_ids': MetadataColumn[Categorical],
         'groups': MetadataColumn[Categorical],
-        'reference_group': Str,
+        'monte_carlo_samples': Int,
+        'control_group': Str,
     },
     outputs=[
         ('differentials', MonteCarloTensor)
@@ -56,8 +57,8 @@ plugin.methods.register_function(
             'Number of monte carlo samples to draw from '
             'posterior distribution.'
         ),
-        "reference_group": (
-            'Reference category to compute log-fold change from.'
+        "control_group": (
+            'Specifies the control group.'
         )
     },
     name='Negative Binomial Case Control Estimation',
