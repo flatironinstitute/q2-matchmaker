@@ -10,7 +10,7 @@ classes = """
     Programming Language :: Python :: 3
     Programming Language :: Python :: 3 :: Only
     Programming Language :: Python :: 3.4
-    Programming Language :: Python :: 3.5
+n    Programming Language :: Python :: 3.5
     Programming Language :: Python :: 3.6
     Programming Language :: Python :: 3.7
     Operating System :: Unix
@@ -19,7 +19,7 @@ classes = """
 """
 classifiers = [s.strip() for s in classes.split('\n') if s]
 
-description = ('QIIME2 plugin for Differential Abundance Analysis.')
+description = ('QIIME2 plugin for Case-Control Differential Abundance Analysis.')
 
 
 setup(name='q2-matchmaker',

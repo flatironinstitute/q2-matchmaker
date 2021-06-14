@@ -13,7 +13,6 @@ import xarray as xr
 import arviz as az
 from scipy.stats import pearsonr
 import pandas.util.testing as pdt
-import qiime2
 
 
 def sim_multinomial(N, D, C, depth=1000):
@@ -114,9 +113,12 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
         self.table, self.metadata, self.diff = _case_control_sim(
             n=50, d=4, depth=100)
 
-    def test_negative_binomial_case_control(self):
+    def test_amplicon_case_control(self):
         sids = [f's{i}' for i in range(self.N)]
         oids = [f'f{i}' for i in range(self.D)]
+        biom_table = biom.Table(self.table.values.T,
+                                list(self.table.columns),
+                                list(self.table.index))
         matchings = qiime2.CategoricalMetadataColumn(
             pd.Series(list(map(str, self.metadata['reps'])),
                       index=pd.Index(sids, name='id'),
@@ -125,8 +127,8 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
             pd.Series(list(map(str, self.metadata['diff'])),
                       index=pd.Index(sids, name='id'),
                       name='n'))
-        res = negative_binomial_case_control(
-            self.table,
+        res = amplicon_case_control(
+            biom_table,
             matchings, diffs,
             monte_carlo_samples = 100,
             reference_group = '0')

@@ -1,7 +1,6 @@
 import qiime2
 import numpy as np
 import pandas as pd
-import xarray as xr
 import arviz as az
 import biom
 from q2_matchmaker._stan import (
