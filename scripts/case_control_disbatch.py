@@ -49,7 +49,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--job-extra',
         help=('Additional job arguments, like loading modules.'),
-        type=str, required=False, default='')
+        type=str, required=False, default=None)
     parser.add_argument(
         '--output-inference', help='Output inference tensor.',
         type=str, required=True)
@@ -88,7 +88,7 @@ if __name__ == '__main__':
                         f'--biom-table {args.biom_table} '
                         f'--metadata-file {args.metadata_file} '
                         f'--matching-ids {args.matching_ids} '
-                        f'--groups {args.group} '
+                        f'--groups {args.groups} '
                         f'--control-group {args.control_group} '
                         f'--feature-id {feature_id} '
                         f'--mu-scale {args.mu_scale} '
@@ -103,7 +103,8 @@ if __name__ == '__main__':
                 fh.write(cmd_)
         ## Run disBatch with the SLURM environmental parameters
         cmd = f'disBatch {task_fp}'
-        cmd = f'{args.job_extra}; {cmd}'
+        if args.job_extra is not None:
+            cmd = f'{args.job_extra}; {cmd}'
         slurm_env = os.environ.copy()
         print(cmd)
         try:

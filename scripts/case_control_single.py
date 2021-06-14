@@ -6,8 +6,6 @@ import numpy as np
 import xarray as xr
 from q2_matchmaker._stan import _case_control_single
 import time
-import logging
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 
 if __name__ == '__main__':
@@ -67,9 +65,12 @@ if __name__ == '__main__':
     else:
         control_loc = args.control_loc
 
+    x = counts[args.feature_id]
+
     samples = _case_control_single(
         x, matching_ids, groups,
-        depth, args.monte_carlo_samples,
+        depth=depth,
+        mc_samples=args.monte_carlo_samples,
         chains=args.chains,
         mu_scale=args.mu_scale,
         control_loc=control_loc,
