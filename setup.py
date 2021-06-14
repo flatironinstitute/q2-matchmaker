@@ -35,6 +35,7 @@ setup(name='q2-matchmaker',
           'scipy',
           'pandas',
           'xarray',
+          'arviz',
           'matplotlib',
       ],
       entry_points={

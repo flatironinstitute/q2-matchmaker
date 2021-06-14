@@ -1,5 +1,7 @@
 from scipy.stats import f as f_distrib
+from scipy.stats import ttest_1samp
 from scipy.spatial.distance import cdist, euclidean
+import pandas as pd
 import numpy as np
 
 
@@ -42,6 +44,7 @@ def hotelling_ttest(X: np.array, to_alr=False):
 
 
 def spherical_test(X: np.array, p=0.95, center=True):
+
     """ Fits a sphere that contains all of the points in X
     and tests to see if 0 is inside of that sphere.
 
@@ -66,25 +69,37 @@ def spherical_test(X: np.array, p=0.95, center=True):
     return d < r, r, d
 
 
-def rank_test(X: np.array):
-    """ Computes a cumulative rank test.
+def effect_size(X : pd.DataFrame) -> pd.DataFrame:
+    """ aldex2 style estimate of effect size. """
+    y = x - x.mean(axis=0)   # CLR transform posterior
+    ym, ys = y.mean(axis=1), y.var(axis=1, ddof=1)
+    ye = ym / ys
+    diffs['effect_size'] = ye
+    diffs['effect_std'] = 1 / ys
+    # Compute effect size pvalues
+    tt, pvals = ttest_1samp(y.values, popmean = 0, axis=1)
+    diffs['tstat'] = tt
+    diffs['pvalue'] = pvals
+    return diffs
 
-    This computes the probability of P(x > X) where x
-    is the feature of interest, and X are all of the features
-    that have a mean rank less than x.
-    """
-    X_ = X - X[:, 0].reshape(-1, 1)
-    X_ = X_[:, 1:]
-    muX = X_.mean(axis=0)
-    idx = np.argsort(muX)
-    X_ = X_[:, idx]
-    d = len(muX)
-    n = len(X_)
-    pval = np.zeros(d)
-    for i in range(d):
-        T = 0
-        for j in range(n):
-            T += np.sum(X[j, i] > X[j, i + 1:])
-        p = (T + 1) / (n * (d - i) + 1)
-        pval[i] = p
-    return idx, pval
+
+
+def logodds_ranking(X : pd.DataFrame) -> pd.Series:
+    """ Computes \log p(max) / p(min) from posterior distribution. """
+    b = x.apply(np.argmin, axis=0)
+    t = x.apply(np.argmax, axis=0)
+    countb = b.value_counts()
+    countt = t.value_counts()
+    countb.index = x.index[countb.index]
+    countt.index = x.index[countt.index]
+    countb.name = 'counts_bot'
+    countt.name = 'counts_top'
+    diffs = pd.merge(diffs, countb, left_index=True, right_index=True, how='left')
+    diffs = pd.merge(diffs, countt, left_index=True, right_index=True, how='left')
+    diffs = diffs.fillna(0)
+    diffs['prob_top'] = (diffs['counts_top'] + 1) / (diffs['counts_top'] + 1).sum()
+    diffs['prob_bot'] = (diffs['counts_bot'] + 1) / (diffs['counts_bot'] + 1).sum()
+    diffs['prob_lr'] = diffs.apply(
+        lambda x: np.log(x['prob_top'] / x['prob_bot']), axis=1)
+    diffs = diffs.replace([np.inf, -np.inf, np.nan], 0)
+    return diffs['prob_lr']

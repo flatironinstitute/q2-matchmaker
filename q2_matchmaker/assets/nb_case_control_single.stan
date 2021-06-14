@@ -14,7 +14,7 @@
 }
 
 parameters {
-  vector[C] control;         // Mean of the control samples
+  vector<upper=0>[C] control;         // Mean of the control samples
   real diff;                 // Difference between case and control
   real mu;                   // mean prior for diff
   real<lower=0.001> sigma;   // variance of batch random effects

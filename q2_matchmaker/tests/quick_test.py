@@ -1,62 +1,90 @@
-
+import argparse
+from dask_jobqueue import SLURMCluster
+from dask.distributed import Client
+import dask
+import dask.array as da
+from biom import load_table
+import pandas as pd
 import numpy as np
-from q2_matchmaker._stan import NegativeBinomialCaseControl
-from q2_matchmaker._stan import _case_control_sim
-from biom import Table
-from birdman.diagnostics import r2_score
-import arviz as az
-from dask.distributed import Client, LocalCluster
+import xarray as xr
+from q2_matchmaker._stan import (_case_control_single, _case_control_sim,
+                                 merge_inferences)
 
-# from dask_jobqueue import SLURMCluster
-# import dask
+
+import time
+import arviz as az
 
 
 np.random.seed(0)
-table, metadata, diff = _case_control_sim(
-    n=200, d=20, depth=1000)
+counts, metadata, diff = _case_control_sim(
+    n=50, d=10, depth=100)
 
 
-biom_table = Table(table.values.T,
-                   list(table.columns),
-                   list(table.index))
-# cluster = SLURMCluster(cores=5,
-#                        processes=4,
-#                        memory='16GB',
-#                        walltime='01:00:00',
-#                        interface='ib0',
-#                        nanny=True,
-#                        death_timeout='300s',
-#                        local_directory='/scratch',
-#                        shebang='#!/usr/bin/env bash',
-#                        env_extra=["export TBB_CXX_TYPE=gcc"],
-#                        queue='ccb')
-
-dask_args = {'n_workers': 5, 'threads_per_worker': 2}
-cluster = LocalCluster(**dask_args)
-cluster.scale(dask_args['n_workers'])
+jobs=4
+cluster = SLURMCluster(cores=4,
+                       processes=jobs,
+                       memory='16GB',
+                       walltime='01:00:00',
+                       interface='ib0',
+                       nanny=True,
+                       death_timeout='300s',
+                       local_directory='/scratch',
+                       shebang='#!/usr/bin/env bash',
+                       env_extra=["export TBB_CXX_TYPE=gcc"],
+                       queue='ccb')
+print(cluster.job_script())
+cluster.scale(jobs=jobs)
 client = Client(cluster)
+print(client)
+client.wait_for_workers(jobs)
+time.sleep(60)
+print(cluster.scheduler.workers)
 
-nb = NegativeBinomialCaseControl(
-    table=biom_table,
-    matching_column="reps",
-    status_column="diff",
-    metadata=metadata,
-    reference_status='1',
-    num_warmup=1000,
-    mu_scale=1,
-    control_loc=-5,
-    control_scale=3,
-    chains=2,
-    seed=42)
-nb.compile_model()
-nb.fit_model()
-inf = nb.to_inference_object()
-loo = az.loo(inf)
-bfmi = az.bfmi(inf)
-rhat = az.rhat(inf, var_names=nb.param_names)
-ess = az.ess(inf, var_names=nb.param_names)
-r2 = r2_score(inf)
-print('loo', loo)
-print('bfmi', bfmi)
-print('rhat', rhat)
-print('r2', r2)
+# take intersection
+depth = counts.sum(axis=1)
+pfunc = lambda x: _case_control_single(
+    x, case_ctrl_ids=metadata['reps'],
+    case_member=metadata['diff'],
+    depth=depth, mc_samples=1000)
+dcounts = da.from_array(counts.values.T, chunks=(counts.T.shape))
+
+res = []
+for d in range(dcounts.shape[0]):
+    r = dask.delayed(pfunc)(dcounts[d])
+    res.append(r)
+# Retrieve InferenceData objects and save them to disk
+futures = dask.persist(*res)
+resdf = dask.compute(futures)
+inf_list = list(resdf[0])
+# coords={'features' : table.ids(axis='observation'),
+#         'monte_carlo_samples' : np.arange(1000)}
+coords={'features' : counts.columns, 'monte_carlo_samples' : np.arange(1000)}
+
+samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
+#samples = xr.concat([df.to_xarray() for df in data_df], dim="features")
+#samples = samples.assign_coords()
+
+# Get summary statistics
+# loo = az.loo(samples)   # broken due to nans
+# bfmi = az.bfmi(samples) # broken due to nans
+param_names = ['mu', 'sigma', 'diff', 'disp', 'control']
+rhat = az.rhat(samples, var_names=param_names)
+ess = az.ess(samples, var_names=param_names)
+y_pred = samples['posterior_predictive'].stack(
+    sample=("chain", "draw"))['y_predict'].fillna(0).values.T
+r2 = az.r2_score(counts.values, y_pred)
+
+summary_stats = loo
+summary_stats.loc['bfmi'] = [bfmi.mean().values, bfmi.std().values]
+summary_stats.loc['r2'] = r2.values
+
+# Save everything to a file
+# os.mkdir(args.output_directory)
+# posterior_file = os.path.join(args.output_directory,
+#                               'differential_posterior.nc')
+# summary_file = os.path.join(args.output_directory,
+#                             'summary_statistics.nc')
+# rhat_file = os.path.join(args.output_directory, 'rhat.nc')
+# samples.to_netcdf(posterior_file)
+# summary_stats.to_netcdf(summary_file)
+# rhat.to_netcdf(rhat_file)
