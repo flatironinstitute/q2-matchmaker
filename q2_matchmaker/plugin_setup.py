@@ -23,7 +23,7 @@ from q2_types.feature_data import MonteCarloTensor
 plugin = qiime2.plugin.Plugin(
     name='matchmaker',
     version=__version__,
-    website="https://github.com/mortonjt/q2-matchmaker",
+    website="https://github.com/flatironinstitute/q2-matchmaker",
     citations=[],
     short_description=('Plugin for differential abundance analysis '
                        'on case-control studies.'),
@@ -40,7 +40,6 @@ plugin.methods.register_function(
         'groups': MetadataColumn[Categorical],
         'monte_carlo_samples': Int,
         'reference_group': Str,
-        'cores': Int
     },
     outputs=[
         ('differentials', MonteCarloTensor)
@@ -62,8 +61,7 @@ plugin.methods.register_function(
         ),
         "reference_group": (
             'Reference category to compute log-fold change from.'
-        ),
-        "cores" : ('Number of cores to utilize for parallelism.')
+        )
     },
     name='Negative Binomial Case Control Estimation',
     description=("Fits a Negative Binomial model to estimate "

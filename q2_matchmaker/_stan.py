@@ -140,14 +140,13 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
         # see https://mattocci27.github.io/assets/poilog.html
         # for recommended parameters for poisson log normal
         fit = sm.sample(data=data_path, iter_sampling=mc_samples,
-                        chains=chains, iter_warmup=mc_samples // 2,
+                        chains=chains, iter_warmup=mc_samples,
                         adapt_delta = 0.9, max_treedepth = 20)
         fit.diagnose()
         inf = az.from_cmdstanpy(fit,
                                 posterior_predictive='y_predict',
                                 log_likelihood='log_lhood')
         return inf
-
 
 
 def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
