@@ -13,20 +13,12 @@ import matplotlib.pyplot as plt
 import pickle
 from cmdstanpy import CmdStanModel, CmdStanMCMC
 from sklearn.preprocessing import LabelEncoder
-import dask_jobqueue
 import tempfile
 import json
-import dask
 import arviz as az
 import biom
-import dask
 import xarray as xr
 
-# Birdman dependencies
-# TODO: get rid of these once have finalized merging BaseModel
-# into the Birdman repo
-from birdman.model_util import (single_fit_to_inference,
-                                multiple_fits_to_inference)
 from cmdstanpy import CmdStanModel, CmdStanMCMC
 from typing import List, Sequence
 
@@ -115,11 +107,8 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                          control_loc : float=0,
                          control_scale : float=10,
                          mc_samples : int=1000,
-<<<<<<< HEAD
                          chains : int=1) -> (CmdStanModel, CmdStanMCMC):
-=======
-                         chains : int=1) -> dict:
->>>>>>> 4b74fc2478bfa8fb63f4a0e21323fb77622bea63
+
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
@@ -151,20 +140,10 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                         chains=chains, iter_warmup=mc_samples,
                         adapt_delta = 0.9, max_treedepth = 20)
         fit.diagnose()
-<<<<<<< HEAD
         inf = az.from_cmdstanpy(fit,
                                 posterior_predictive='y_predict',
                                 log_likelihood='log_lhood')
         return inf
-=======
-
-        inf = az.from_cmdstanpy(fit,
-                                posterior_predictive='y_predict',
-                                log_likelihood='log_lhood',
-        )
-        return inf
-
->>>>>>> 4b74fc2478bfa8fb63f4a0e21323fb77622bea63
 
 
 def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
