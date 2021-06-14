@@ -10,6 +10,7 @@ import xarray as xr
 from q2_matchmaker._stan import (_case_control_single, _case_control_sim,
                                  merge_inferences)
 
+
 import time
 import arviz as az
 

@@ -1,9 +1,10 @@
 import importlib
 import qiime2.plugin
 import qiime2.sdk
-from qiime2.plugin import (Str, Properties, Int, Float,  Metadata, Bool, List,
+from qiime2.plugin import (Str, Int, List,
                            MetadataColumn, Categorical)
 from q2_matchmaker import __version__
+
 from q2_matchmaker._type import  Matching
 from q2_matchmaker._format import (
     MatchingFormat, MatchingDirectoryFormat
@@ -13,7 +14,6 @@ from q2_matchmaker._method import (
     matching
 )
 from q2_types.feature_table import FeatureTable, Frequency
-from q2_types.ordination import PCoAResults
 from q2_types.sample_data import SampleData
 from q2_types.feature_data import MonteCarloTensor
 
@@ -36,7 +36,6 @@ plugin.methods.register_function(
     parameters={
         'matching_ids': MetadataColumn[Categorical],
         'groups': MetadataColumn[Categorical],
-        'monte_carlo_samples': Int,
         'reference_group': Str,
     },
     outputs=[
@@ -52,7 +51,7 @@ plugin.methods.register_function(
     parameter_descriptions={
         'matching_ids': ('The matching ids to link case-control samples '),
         'groups': ('The categorical sample metadata column to test for '
-                     'differential abundance across.'),
+                   'differential abundance across.'),
         "monte_carlo_samples": (
             'Number of monte carlo samples to draw from '
             'posterior distribution.'
@@ -64,6 +63,7 @@ plugin.methods.register_function(
     name='Negative Binomial Case Control Estimation',
     description=("Fits a Negative Binomial model to estimate "
                  "biased log-fold change"),
+
     citations=[]
 )
 
@@ -73,8 +73,8 @@ plugin.methods.register_function(
     inputs={},
     parameters={
         'sample_metadata': qiime2.plugin.Metadata,
-        'status' : Str,
-        'match_columns' : List[Str],
+        'status': Str,
+        'match_columns': List[Str],
         'prefix': Str
     },
     outputs=[

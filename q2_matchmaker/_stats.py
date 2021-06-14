@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 
-def hotelling_ttest(X : np.array, to_alr=False):
+def hotelling_ttest(X: np.array, to_alr=False):
     """ Tests if table is centered around zero.
 
     Parameters
@@ -32,7 +32,7 @@ def hotelling_ttest(X : np.array, to_alr=False):
         X_ = X
     muX = X_.mean(axis=0)
     nx, p = X_.shape
-    if nx < p :
+    if nx < p:
         raise ValueError(f'{nx} < {p}, need more samples.')
     covX = np.cov(X_.T)
     invcovX = np.linalg.pinv(covX)
@@ -43,7 +43,8 @@ def hotelling_ttest(X : np.array, to_alr=False):
     return t2, pval
 
 
-def spherical_test(X : np.array, p=0.95, center=True):
+def spherical_test(X: np.array, p=0.95, center=True):
+
     """ Fits a sphere that contains all of the points in X
     and tests to see if 0 is inside of that sphere.
 
@@ -80,6 +81,7 @@ def effect_size(X : pd.DataFrame) -> pd.DataFrame:
     diffs['tstat'] = tt
     diffs['pvalue'] = pvals
     return diffs
+
 
 
 def logodds_ranking(X : pd.DataFrame) -> pd.Series:
