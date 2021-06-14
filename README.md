@@ -32,7 +32,7 @@ git clone https://github.com/flatironinstitute/q2-matchmaker.git
 cd q2-matchmaker
 source install.sh
 pip install -e .
-qiime dev refresh-cache
+qiime dev refresh-cache   # this is optional. 
 ```
 
 # qiime2 Tutorial
