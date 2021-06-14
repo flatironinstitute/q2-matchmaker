@@ -173,3 +173,4 @@ And wahla, you now have an arviz object that you can open in python via
 import arviz as az
 inf = az.from_netcdf('differentials.nc')
 ```
+

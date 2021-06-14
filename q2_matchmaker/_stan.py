@@ -1,5 +1,4 @@
-import argparse
-from biom import load_table
+import os
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -17,10 +16,7 @@ import tempfile
 import json
 import arviz as az
 import biom
-import xarray as xr
 
-from cmdstanpy import CmdStanModel, CmdStanMCMC
-from typing import List, Sequence
 
 
 def _case_control_sim(n=100, d=10, depth=50):
@@ -46,7 +42,6 @@ def _case_control_sim(n=100, d=10, depth=50):
     diff = np.random.randn(d - 1)
     ref = np.random.randn(d - 1)
     table = np.zeros((n, d))
-    batch_md = np.zeros(n)
     diff_md = np.zeros(n)
     rep_md = np.zeros(n)
     for i in range(n // 2):
@@ -72,6 +67,7 @@ def _case_control_sim(n=100, d=10, depth=50):
     return table, md, diff
 
 
+
 def _case_control_full(counts : np.array,
                        case_ctrl_ids : np.array,
                        case_member : np.array,
@@ -82,7 +78,9 @@ def _case_control_full(counts : np.array,
                              case_member, depth)
     #initialization for controls
     init_ctrl = alr(multiplicative_replacement(
+
         closure(counts[~np.array(dat['cc_bool'])] + 1)))
+
     # Actual stan modeling
     code = os.path.join(os.path.dirname(__file__),
                         'assets/nb_case_control.stan')
@@ -100,6 +98,7 @@ def _case_control_full(counts : np.array,
         return sm, posterior
 
 
+
 def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                          case_member : np.array,
                          depth : int,
@@ -108,7 +107,6 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                          control_scale : float=10,
                          mc_samples : int=1000,
                          chains : int=1) -> (CmdStanModel, CmdStanMCMC):
-
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
@@ -129,6 +127,7 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
         'disp_scale': 1,
         'control_loc': control_loc,
         'control_scale': control_scale,
+
     }
     with tempfile.TemporaryDirectory() as temp_dir_name:
         data_path = os.path.join(temp_dir_name, 'data.json')
@@ -144,6 +143,7 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                                 posterior_predictive='y_predict',
                                 log_likelihood='log_lhood')
         return inf
+
 
 
 def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
@@ -199,3 +199,4 @@ def merge_inferences(inf_list, log_likelihood, posterior_predictive,
         all_group_inferences.append(group_inf)
 
     return az.concat(*all_group_inferences)
+

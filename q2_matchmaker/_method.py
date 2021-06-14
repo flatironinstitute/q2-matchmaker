@@ -1,12 +1,8 @@
 import qiime2
 import numpy as np
 import pandas as pd
-import xarray as xr
 import arviz as az
 import biom
-from q2_matchmaker._stan import (
-    _case_control_full, _case_control_data,
-    _case_control_single)
 from q2_matchmaker._matching import _matchmaker
 from typing import List
 
@@ -41,6 +37,7 @@ def negative_binomial_case_control(
         'coords': {'diff': list(table.columns[1:])}
     }
     samples = az.from_cmdstanpy(posterior=posterior, **opts)
+
     return samples
 
 

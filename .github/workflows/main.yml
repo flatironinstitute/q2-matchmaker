@@ -1,0 +1,65 @@
+# much of this is taken from the Empress main.yml file
+name: q2-matchmaker CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9"]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: q2-matchmaker
+          python-version: ${{ matrix.python-version }}
+
+      - name: Test conda installation
+        shell: bash -l {0}
+        run: conda info
+
+      - name: Install conda packages
+        shell: bash -l {0}
+        run: conda install -c conda-forge dask biom-format patsy pytest xarray scikit-bio flake8
+
+      - name: Install master branch of arviz
+        shell: bash -l {0}
+        run: pip install git+git://github.com/arviz-devs/arviz.git
+
+      - name: Install main qiime2 branch
+        shell: bash -l {0}
+        run: pip install git+git://github.com/qiime2/qiime2.git
+
+      - name: Install working branch of q2_types
+        shell: bash -l {0}
+        run: pip install git+git://github.com/mortonjt/q2-types.git
+
+      - name: Install q2-matchmaker
+        shell: bash -l {0}
+        run: pip install -e .[dev]
+
+      - name: Install working branch of birdman
+        shell: bash -l {0}
+        run: pip install git+git://github.com/gibsramen/BIRDMAn.git
+
+      - name: Install cmdstan
+        shell: bash -l {0}
+        run: python -c "import cmdstanpy; cmdstanpy.install_cmdstan()"
+
+      - name: Run tests
+        shell: bash -l {0}
+        run: make all
