@@ -46,7 +46,8 @@ if __name__ == '__main__':
     parser.add_argument(
         '--cores', help='Number of cores per process.', type=int, required=False, default=1)
     parser.add_argument(
-        '--processes', help='Number of processes per node.', type=int, required=False, default=1)
+        '--processes', help='Number of processes per node.', type=int,
+        required=False, default=1)
     parser.add_argument(
         '--nodes', help='Number of nodes.', type=int, required=False, default=1)
     parser.add_argument(
@@ -54,23 +55,22 @@ if __name__ == '__main__':
     parser.add_argument(
         '--walltime', help='Walltime.', type=str, required=False, default='01:00:00')
     parser.add_argument(
-        '--interface', help='Interface for communication', type=str, required=False, default='eth0')
+        '--interface', help='Interface for communication', type=str,
+        required=False, default='eth0')
     parser.add_argument(
         '--job-extra', help='Comma delimited list of extra job arguments.',
         type=str, required=False, default='--constraint=rome')
     parser.add_argument(
         '--queue', help='Queue to submit job to.', type=str, required=True)
     parser.add_argument(
-        '--local-directory', help='Scratch directory to deposit dask logs.', type=str, required=False,
-        default='/scratch')
+        '--local-directory', help='Scratch directory to deposit dask logs.',
+        type=str, required=False, default='/scratch')
     parser.add_argument(
         '--output-directory', help=('Output directory to store posterior distributions '
                                     ' and diagnostics.'),
         type=str, required=True)
 
-
     args = parser.parse_args()
-
     dask.config.set({'admin.tick.limit': '1h'})
     dask.config.set({"distributed.comm.timeouts.tcp": "300s"})
     cluster = SLURMCluster(cores=args.cores,
@@ -120,8 +120,9 @@ if __name__ == '__main__':
         control_loc=control_loc,
         control_scale=args.control_scale)
 
-    dcounts = da.from_array(counts.values.T,
-                            chunks=(1, -1))
+    dcounts = da.from_array(counts.values.T, chunks=(counts.T.shape))
+    # dcounts = da.from_array(counts.values.T,
+    #                         chunks=(1, -1))
 
     res = []
     for d in range(dcounts.shape[0]):

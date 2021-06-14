@@ -4,11 +4,9 @@ import qiime2.sdk
 from qiime2.plugin import (Str, Properties, Int, Float,  Metadata, Bool, List,
                            MetadataColumn, Categorical)
 from q2_matchmaker import __version__
-from q2_matchmaker._type import FeatureTensor, Matching
+from q2_matchmaker._type import  Matching
 from q2_matchmaker._format import (
-    FeatureTensorNetCDFFormat, FeatureTensorNetCDFDirFmt,
     MatchingFormat, MatchingDirectoryFormat
-    # DifferentialStatsFormat, DifferentialStatsDirectoryFormat
 )
 from q2_matchmaker._method import (
     negative_binomial_case_control,
