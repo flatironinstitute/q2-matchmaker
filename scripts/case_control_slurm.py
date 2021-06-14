@@ -16,108 +16,128 @@ import arviz as az
 
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--biom-table', help='Biom table of counts.', required=True)
+    parser.add_argument(
+        '--metadata-file', help='Sample metadata file.', required=True)
+    parser.add_argument(
+        '--matching-ids', help='Column specifying matchings.', required=True)
+    parser.add_argument(
+        '--groups', help='Column specifying groups.', required=True)
+    parser.add_argument(
+        '--reference-group', help='The name of the reference group.', required=True)
+    parser.add_argument(
+        '--mu-scale', help='Scale of differentials.',
+        type=float, required=False, default=10)
+    parser.add_argument(
+        '--control-loc', help='Center of control log proportions.',
+        type=float, required=False, default=None)
+    parser.add_argument(
+        '--control-scale', help='Scale of control log proportions.',
+        type=float, required=False, default=10)
+    parser.add_argument(
+        '--monte-carlo-samples', help='Number of monte carlo samples.',
+        type=int, required=False, default=1000)
+    parser.add_argument(
+        '--chains', help='Number of MCMC chains.',
+        type=int, required=False, default=4)
+    parser.add_argument(
+        '--cores', help='Number of cores per process.', type=int, required=False, default=1)
+    parser.add_argument(
+        '--processes', help='Number of processes per node.', type=int,
+        required=False, default=1)
+    parser.add_argument(
+        '--nodes', help='Number of nodes.', type=int, required=False, default=1)
+    parser.add_argument(
+        '--memory', help='Memory allocation size.', type=str, required=False, default='16GB')
+    parser.add_argument(
+        '--walltime', help='Walltime.', type=str, required=False, default='01:00:00')
+    parser.add_argument(
+        '--interface', help='Interface for communication', type=str,
+        required=False, default='eth0')
+    parser.add_argument(
+        '--job-extra', help='Comma delimited list of extra job arguments.',
+        type=str, required=False, default='--constraint=rome')
+    parser.add_argument(
+        '--queue', help='Queue to submit job to.', type=str, required=True)
+    parser.add_argument(
+        '--local-directory', help='Scratch directory to deposit dask logs.',
+        type=str, required=False, default='/scratch')
+    parser.add_argument(
+        '--output-directory', help=('Output directory to store posterior distributions '
+                                    ' and diagnostics.'),
+        type=str, required=True)
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    '--biom-table', help='Biom table of counts.', required=True)
-parser.add_argument(
-    '--metadata-file', help='Sample metadata file.', required=True)
-parser.add_argument(
-    '--matching-ids', help='Column specifying matchings.', required=True)
-parser.add_argument(
-    '--groups', help='Column specifying groups.', required=True)
-parser.add_argument(
-    '--reference-group', help='The name of the reference group.', required=True)
-parser.add_argument(
-    '--test-biom-table', help='Biom table of counts.', required=False, default=None)
-parser.add_argument(
-    '--test-metadata-file', help='Sample metadata file.', required=False, default=None)
-parser.add_argument(
-    '--monte-carlo-samples', help='Number of monte carlo samples.',
-    type=int, required=False, default=1000)
-parser.add_argument(
-    '--cores', help='Number of cores per process.', type=int, required=False, default=1)
-parser.add_argument(
-    '--chunksize', help='Number of features to analyze per process.',
-    type=int, required=False, default=50)
-parser.add_argument(
-    '--processes', help='Number of processes per node.', type=int, required=False, default=1)
-parser.add_argument(
-    '--nodes', help='Number of nodes.', type=int, required=False, default=1)
-parser.add_argument(
-    '--memory', help='Memory allocation size.', type=str, required=False, default='16GB')
-parser.add_argument(
-    '--walltime', help='Walltime.', type=str, required=False, default='01:00:00')
-parser.add_argument(
-    '--interface', help='Interface for communication', type=str, required=False, default='eth0')
-parser.add_argument(
-    '--jobs-extra', help='Comma delimited list of extra job arguments.',
-    type=str, required=False, default='--constraint=rome')
-parser.add_argument(
-    '--queue', help='Queue to submit job to.', type=str, required=True)
-parser.add_argument(
-    '--local-directory', help='Scratch directory to deposit dask logs.', type=str, required=False,
-    default='/scratch')
+    args = parser.parse_args()
+    dask.config.set({'admin.tick.limit': '1h'})
+    dask.config.set({"distributed.comm.timeouts.tcp": "300s"})
+    cluster = SLURMCluster(cores=args.cores,
+                           processes=args.processes,
+                           memory=args.memory,
+                           walltime=args.walltime,
+                           interface=args.interface,
+                           nanny=True,
+                           death_timeout='600s',
+                           local_directory=args.local_directory,
+                           shebang='#!/usr/bin/env bash',
+                           env_extra=["export TBB_CXX_TYPE=gcc"],
+                           job_extra=args.job_extra.split(','),
+                           queue=args.queue)
+    print(args)
+    print(cluster.job_script())
+    cluster.scale(jobs=args.nodes)
+    client = Client(cluster)
+    print(client)
+    client.wait_for_workers(args.nodes)
+    time.sleep(60)
+    print(cluster.scheduler.workers)
+    table = load_table(args.biom_table)
+    counts = pd.DataFrame(np.array(table.matrix_data.todense()).T,
+                          index=table.ids(),
+                          columns=table.ids(axis='observation'))
+    metadata = pd.read_table(args.metadata_file, index_col=0)
+    matching_ids = metadata[args.matching_ids]
+    groups = metadata[args.groups]
+    metadata = pd.DataFrame({'cc_ids': matching_ids,
+                             'groups': groups})
+    metadata['groups'] = (metadata['groups'] == args.reference_group).astype(np.int64)
+    # take intersections
+    counts, metadata = match(counts, metadata)
+    if args.control_loc is None:
+        # Dirichilet-like prior
+        control_loc = np.log(1 / counts.shape[1])
+    else:
+        control_loc = args.control_loc
+    depth = counts.sum(axis=1)
+    pfunc = lambda x: _case_control_single(
+        x, case_ctrl_ids=metadata['cc_ids'],
+        case_member=metadata['groups'],
+        depth=depth, mc_samples=args.monte_carlo_samples,
+        chains=args.chains,
+        mu_scale=args.mu_scale,
+        control_loc=control_loc,
+        control_scale=args.control_scale)
 
-parser.add_argument(
-    '--output-directory', help=('Output directory to store posterior distributions '
-                                ' and diagnostics.'),
-    type=str, required=True)
+    dcounts = da.from_array(counts.values.T, chunks=(counts.T.shape))
+    # dcounts = da.from_array(counts.values.T,
+    #                         chunks=(1, -1))
 
-args = parser.parse_args()
-print(args)
-
-dask.config.set({'admin.tick.limit': '1h'})
-dask.config.set({"distributed.comm.timeouts.tcp": "300s"})
-cluster = SLURMCluster(cores=args.cores,
-                       processes=args.processes,
-                       memory=args.memory,
-                       walltime=args.walltime,
-                       interface=args.interface,
-                       nanny=True,
-                       death_timeout='600s',
-                       local_directory=args.local_directory,
-                       shebang='#!/usr/bin/env bash',
-                       env_extra=["export TBB_CXX_TYPE=gcc"],
-                       jobs_extra=args.jobs_extra.split(',')
-                       queue=args.queue)
-print(cluster.job_script())
-cluster.scale(jobs=args.nodes)
-client = Client(cluster)
-print(client)
-client.wait_for_workers(args.nodes)
-time.sleep(60)
-print(cluster.scheduler.workers)
-table = load_table(args.biom_table)
-counts = pd.DataFrame(np.array(table.matrix_data.todense()).T,
-                      index=table.ids(),
-                      columns=table.ids(axis='observation'))
-metadata = pd.read_table(args.metadata_file, index_col=0)
-matching_ids = metadata[args.matching_ids]
-groups = metadata[args.groups]
-metadata = pd.DataFrame({'cc_ids': matching_ids,
-                         'groups': groups})
-metadata['groups'] = (metadata['groups'] == args.reference_group).astype(np.int64)
-
-# take intersections
-counts, metadata = match(counts, metadata)
-
-pfunc = lambda x: _case_control_single(
-    x, case_ctrl_ids=metadata['cc_ids'],
-    case_member=metadata['groups'],
-    depth=depth, mc_samples=args.monte_carlo_samples)
-
-dcounts = da.from_array(counts.values.T, chunks=(chunksize))
-
-res = []
-for d in range(dcounts.shape[0]):
-    r = dask.delayed(pfunc)(dcounts[d])
-    res.append(r)
-# Retrieve InferenceData objects and save them to disk
-futures = dask.persist(*res)
-resdf = dask.compute(futures)
-inf_list = list(resdf[0])
-coords={'features' : counts.columns,
-        'monte_carlo_samples' : np.arange(args.monte_carlo_samples)}
-samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
-samples.to_netcdf(posterior_file)
+    res = []
+    for d in range(dcounts.shape[0]):
+        r = dask.delayed(pfunc)(dcounts[d])
+        res.append(r)
+    print('Jobs are assigned.')
+    # Retrieve InferenceData objects and save them to disk
+    futures = dask.persist(*res)
+    resdf = dask.compute(futures)
+    print('Posteriors have been computed')
+    inf_list = list(resdf[0])
+    coords={'features' : counts.columns,
+            'monte_carlo_samples' : np.arange(args.monte_carlo_samples)}
+    samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
+    os.mkdir(args.output_directory)
+    posterior_file = os.path.join(args.output_directory,
+                                  'differential_posterior.nc')
+    samples.to_netcdf(posterior_file)

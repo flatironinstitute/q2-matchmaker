@@ -111,8 +111,15 @@ def _case_control_full(counts : np.array,
 def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                          case_member : np.array,
                          depth : int,
+                         mu_scale : float=10,
+                         control_loc : float=0,
+                         control_scale : float=10,
                          mc_samples : int=1000,
+<<<<<<< HEAD
                          chains : int=1) -> (CmdStanModel, CmdStanMCMC):
+=======
+                         chains : int=1) -> dict:
+>>>>>>> 4b74fc2478bfa8fb63f4a0e21323fb77622bea63
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
@@ -128,10 +135,11 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
         'y' : list(map(int, counts.astype(np.int64))),
         'cc_bool' : list(map(int, case_member)),
         'cc_ids' : list(map(int, case_ids + 1)),
-        'mu_scale': 10,
+        'mu_scale': mu_scale,
         'sigma_scale': 1,
         'disp_scale': 1,
-        'control_scale': 10,
+        'control_loc': control_loc,
+        'control_scale': control_scale,
     }
     with tempfile.TemporaryDirectory() as temp_dir_name:
         data_path = os.path.join(temp_dir_name, 'data.json')
@@ -143,10 +151,20 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                         chains=chains, iter_warmup=mc_samples,
                         adapt_delta = 0.9, max_treedepth = 20)
         fit.diagnose()
+<<<<<<< HEAD
         inf = az.from_cmdstanpy(fit,
                                 posterior_predictive='y_predict',
                                 log_likelihood='log_lhood')
         return inf
+=======
+
+        inf = az.from_cmdstanpy(fit,
+                                posterior_predictive='y_predict',
+                                log_likelihood='log_lhood',
+        )
+        return inf
+
+>>>>>>> 4b74fc2478bfa8fb63f4a0e21323fb77622bea63
 
 
 def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
