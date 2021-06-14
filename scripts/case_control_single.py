@@ -23,7 +23,7 @@ if __name__ == '__main__':
                           '(i.e. treatment vs control groups).'),
         required=True)
     parser.add_argument(
-        '--reference-group', help='The name of the reference group.', required=True)
+        '--control-group', help='The name of the control group.', required=True)
     parser.add_argument(
         '--mu-scale', help='Scale of differentials.',
         type=float, required=False, default=10)
@@ -56,6 +56,7 @@ if __name__ == '__main__':
     counts, matching_ids, groups = [x.loc[idx] for x in
                                     (counts, matching_ids, groups)]
     matching_ids, groups = matching_ids.values, groups.values
+    groups = (groups == args.control_group).astype(np.int64)
     depth = counts.sum(axis=1)
 
     if args.control_loc is None:
