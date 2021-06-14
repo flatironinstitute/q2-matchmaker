@@ -84,7 +84,7 @@ if __name__ == '__main__':
         print(task_fp)
         with open(task_fp, 'w') as fh:
             for feature_id in counts.columns:
-                cmd_ = ('batch_estimate_single.py '
+                cmd_ = ('case_control_single.py '
                         f'--biom-table {args.biom_table} '
                         f'--metadata-file {args.metadata_file} '
                         f'--matching-ids {args.matching_ids} '

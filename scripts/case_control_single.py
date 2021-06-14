@@ -25,6 +25,8 @@ if __name__ == '__main__':
     parser.add_argument(
         '--control-group', help='The name of the control group.', required=True)
     parser.add_argument(
+        '--feature-id', help='Feature to analyze.', type=str, required=True)
+    parser.add_argument(
         '--mu-scale', help='Scale of differentials.',
         type=float, required=False, default=10)
     parser.add_argument(
