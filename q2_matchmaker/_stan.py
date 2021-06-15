@@ -167,16 +167,15 @@ def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
 def merge_inferences(inf_list, log_likelihood, posterior_predictive,
                      coords, concatenation_name='features'):
     group_list = []
-    group_list.append(dask.persist(*[x.posterior for x in inf_list]))
-    group_list.append(dask.persist(*[x.sample_stats for x in inf_list]))
+    group_list.append([x.posterior for x in inf_list])
+    group_list.append([x.sample_stats for x in inf_list])
     if log_likelihood is not None:
-        group_list.append(dask.persist(*[x.log_likelihood for x in inf_list]))
+        group_list.append([x.log_likelihood for x in inf_list])
     if posterior_predictive is not None:
         group_list.append(
-            dask.persist(*[x.posterior_predictive for x in inf_list])
+            [x.posterior_predictive for x in inf_list]
         )
 
-    group_list = dask.compute(*group_list)
     po_ds = xr.concat(group_list[0], concatenation_name)
     ss_ds = xr.concat(group_list[1], concatenation_name)
     group_dict = {"posterior": po_ds, "sample_stats": ss_ds}
@@ -199,4 +198,3 @@ def merge_inferences(inf_list, log_likelihood, posterior_predictive,
         all_group_inferences.append(group_inf)
 
     return az.concat(*all_group_inferences)
-
