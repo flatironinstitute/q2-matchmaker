@@ -43,9 +43,12 @@ if __name__ == '__main__':
         required=False, default=4)
     parser.add_argument(
         '--local-directory',
-        help=('Scratch directory to deposit logs '
-              'and intermediate files.'),
+        help=('Node specific storage location to.'),
         type=str, required=False, default='/scratch')
+    parser.add_argument(
+        '--intermediate-directory',
+        help=('Intermediate directory to store on NFS.'),
+        type=str, required=False, default='intermediate')
     parser.add_argument(
         '--job-extra',
         help=('Additional job arguments, like loading modules.'),
@@ -98,7 +101,9 @@ if __name__ == '__main__':
                         f'--chains {args.chains} '
                         f'--output-tensor {args.local_directory}/{feature_id}.nc'
                         # slurm logs
-                        f' &> {args.local_directory}/{feature_id}.log\n')
+                        f' &> {args.local_directory}/{feature_id}.log;'
+                        f'cp {args.local_directory}/{feature_id}.nc '
+                        f'{args.intermediate_directory}/{feature_id}.nc\n')
                 print(cmd_)
                 fh.write(cmd_)
         ## Run disBatch with the SLURM environmental parameters
