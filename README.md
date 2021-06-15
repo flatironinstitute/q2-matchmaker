@@ -32,7 +32,7 @@ git clone https://github.com/flatironinstitute/q2-matchmaker.git
 cd q2-matchmaker
 source install.sh
 pip install -e .
-qiime dev refresh-cache   # this is optional. 
+qiime dev refresh-cache   # this is optional.
 ```
 
 # qiime2 Tutorial
@@ -52,7 +52,7 @@ qiime matchmaker negative-binomial-case-control \
     --i-table table.qza \
     --m-matching-ids-file sample_metadata.txt --m-matching-ids-column reps \
     --m-groups-file sample_metadata.txt --m-groups-column diff \
-    --p-control-group 0 \
+    --p-treatment-group 0 \
     --o-differentials differentials.qza
 ```
 
@@ -134,7 +134,7 @@ case_control_disbatch.py \
     --metadata-file sample_metadata.txt \
     --matching-ids reps \
     --groups diff \
-    --control-group 0 \
+    --treatment-group 0 \
     --monte-carlo-samples 1000 \
     --local-directory /scratch \
     --output-inference differentials.nc
@@ -167,4 +167,3 @@ And wahla, you now have an arviz object that you can open in python via
 import arviz as az
 inf = az.from_netcdf('differentials.nc')
 ```
-

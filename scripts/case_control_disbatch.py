@@ -25,7 +25,7 @@ if __name__ == '__main__':
                           '(i.e. treatment vs control groups).'),
         required=True)
     parser.add_argument(
-        '--control-group', help='The name of the control group.', required=True)
+        '--treatment-group', help='The name of the treatment group.', required=True)
     parser.add_argument(
         '--mu-scale', help='Scale of differentials.',
         type=float, required=False, default=10)
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     counts, matching_ids, groups = [x.loc[idx] for x in
                                     (counts, matching_ids, groups)]
     matching_ids, groups = matching_ids.values, groups.values
-    groups = (groups == args.control_group).astype(np.int64)
+    groups = (groups == args.treatment_group).astype(np.int64)
 
     if args.control_loc is None:
         # Dirichilet-like prior
@@ -92,7 +92,7 @@ if __name__ == '__main__':
                         f'--metadata-file {args.metadata_file} '
                         f'--matching-ids {args.matching_ids} '
                         f'--groups {args.groups} '
-                        f'--control-group {args.control_group} '
+                        f'--treatment-group {args.treatment_group} '
                         f'--feature-id {feature_id} '
                         f'--mu-scale {args.mu_scale} '
                         f'--control-loc {control_loc} '

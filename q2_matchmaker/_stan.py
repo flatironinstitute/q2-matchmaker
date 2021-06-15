@@ -14,6 +14,7 @@ from cmdstanpy import CmdStanModel, CmdStanMCMC
 from sklearn.preprocessing import LabelEncoder
 import tempfile
 import json
+import xarray as xr
 import arviz as az
 import biom
 

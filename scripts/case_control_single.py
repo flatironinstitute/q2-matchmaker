@@ -21,7 +21,7 @@ if __name__ == '__main__':
                           '(i.e. treatment vs control groups).'),
         required=True)
     parser.add_argument(
-        '--control-group', help='The name of the control group.', required=True)
+        '--treatment-group', help='The name of the control group.', required=True)
     parser.add_argument(
         '--feature-id', help='Feature to analyze.', type=str, required=True)
     parser.add_argument(
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     counts, matching_ids, groups = [x.loc[idx] for x in
                                     (counts, matching_ids, groups)]
     matching_ids, groups = matching_ids.values, groups.values
-    groups = (groups == args.control_group).astype(np.int64)
+    groups = (groups == args.treatment_group).astype(np.int64)
     depth = counts.sum(axis=1)
 
     if args.control_loc is None:
