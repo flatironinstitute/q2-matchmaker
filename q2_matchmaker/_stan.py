@@ -14,6 +14,7 @@ from cmdstanpy import CmdStanModel, CmdStanMCMC
 from sklearn.preprocessing import LabelEncoder
 import tempfile
 import json
+import xarray as xr
 import arviz as az
 import biom
 
@@ -165,38 +166,39 @@ def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
 
 
 def merge_inferences(inf_list, log_likelihood, posterior_predictive,
-                     coords, concatenation_name='features'):
+                     coords, concatenation_name='features',
+                     sample_name='samples'):
     group_list = []
-    group_list.append(dask.persist(*[x.posterior for x in inf_list]))
-    group_list.append(dask.persist(*[x.sample_stats for x in inf_list]))
+    group_list.append([x.posterior for x in inf_list])
+    group_list.append([x.sample_stats for x in inf_list])
     if log_likelihood is not None:
-        group_list.append(dask.persist(*[x.log_likelihood for x in inf_list]))
+        group_list.append([x.log_likelihood for x in inf_list])
     if posterior_predictive is not None:
         group_list.append(
-            dask.persist(*[x.posterior_predictive for x in inf_list])
+            [x.posterior_predictive for x in inf_list]
         )
 
-    group_list = dask.compute(*group_list)
     po_ds = xr.concat(group_list[0], concatenation_name)
     ss_ds = xr.concat(group_list[1], concatenation_name)
     group_dict = {"posterior": po_ds, "sample_stats": ss_ds}
 
     if log_likelihood is not None:
         ll_ds = xr.concat(group_list[2], concatenation_name)
+        ll_ds = ll_ds.rename_dims({'log_lhood_dim_0': sample_name})
         group_dict["log_likelihood"] = ll_ds
     if posterior_predictive is not None:
         pp_ds = xr.concat(group_list[3], concatenation_name)
+        pp_ds = pp_ds.rename_dims({'y_predict_dim_0': sample_name})
         group_dict["posterior_predictive"] = pp_ds
 
     all_group_inferences = []
     for group in group_dict:
         # Set concatenation dim coords
         group_ds = group_dict[group].assign_coords(
-            {concatenation_name: coords[concatenation_name]}
+            {concatenation_name: coords[concatenation_name],
+             sample_name : coords[sample_name]}
         )
-
         group_inf = az.InferenceData(**{group: group_ds})  # hacky
         all_group_inferences.append(group_inf)
 
     return az.concat(*all_group_inferences)
-

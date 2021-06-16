@@ -25,7 +25,7 @@ if __name__ == '__main__':
                           '(i.e. treatment vs control groups).'),
         required=True)
     parser.add_argument(
-        '--control-group', help='The name of the control group.', required=True)
+        '--treatment-group', help='The name of the treatment group.', required=True)
     parser.add_argument(
         '--mu-scale', help='Scale of differentials.',
         type=float, required=False, default=10)
@@ -43,9 +43,12 @@ if __name__ == '__main__':
         required=False, default=4)
     parser.add_argument(
         '--local-directory',
-        help=('Scratch directory to deposit logs '
-              'and intermediate files.'),
+        help=('Node specific storage location to.'),
         type=str, required=False, default='/scratch')
+    parser.add_argument(
+        '--intermediate-directory',
+        help=('Intermediate directory to store on NFS.'),
+        type=str, required=False, default='intermediate')
     parser.add_argument(
         '--job-extra',
         help=('Additional job arguments, like loading modules.'),
@@ -60,7 +63,8 @@ if __name__ == '__main__':
     counts = pd.DataFrame(np.array(table.matrix_data.todense()).T,
                           index=table.ids(),
                           columns=table.ids(axis='observation'))
-    metadata = pd.read_table(args.metadata_file, index_col=0, comment='#')
+    metadata = pd.read_table(args.metadata_file, comment='#', dtype=str)
+    metadata = metadata.set_index(metadata.columns[0])
     matching_ids = metadata[args.matching_ids]
     groups = metadata[args.groups]
     # match everything up
@@ -68,13 +72,16 @@ if __name__ == '__main__':
     counts, matching_ids, groups = [x.loc[idx] for x in
                                     (counts, matching_ids, groups)]
     matching_ids, groups = matching_ids.values, groups.values
-    groups = (groups == args.control_group).astype(np.int64)
+    groups = (groups == args.treatment_group).astype(np.int64)
 
     if args.control_loc is None:
         # Dirichilet-like prior
         control_loc = np.log(1 / counts.shape[1])
     else:
         control_loc = args.control_loc
+
+    if not os.path.exists(args.intermediate_directory):
+        os.mkdir(args.intermediate_directory)
 
     # Launch disbatch
     ## First create a temporary file with all of the tasks
@@ -89,7 +96,7 @@ if __name__ == '__main__':
                         f'--metadata-file {args.metadata_file} '
                         f'--matching-ids {args.matching_ids} '
                         f'--groups {args.groups} '
-                        f'--control-group {args.control_group} '
+                        f'--treatment-group {args.treatment_group} '
                         f'--feature-id {feature_id} '
                         f'--mu-scale {args.mu_scale} '
                         f'--control-loc {control_loc} '
@@ -98,7 +105,10 @@ if __name__ == '__main__':
                         f'--chains {args.chains} '
                         f'--output-tensor {args.local_directory}/{feature_id}.nc'
                         # slurm logs
-                        f' &> {args.local_directory}/{feature_id}.log\n')
+                        f' &> {args.local_directory}/{feature_id}.log;'
+                        f'cp {args.local_directory}/{feature_id}.nc '
+                        f'{args.intermediate_directory}/{feature_id}.nc\n'
+                )
                 print(cmd_)
                 fh.write(cmd_)
         ## Run disBatch with the SLURM environmental parameters
@@ -115,10 +125,11 @@ if __name__ == '__main__':
             print("Output: \n{}\n".format(output))
 
     # Aggregate results
-    inference_files = [f'{args.local_directory}/{feature_id}.nc'
+    inference_files = [f'{args.intermediate_directory}/{feature_id}.nc'
                        for feature_id in counts.columns]
     inf_list = [az.from_netcdf(x) for x in inference_files]
     coords={'features' : counts.columns,
+            'samples' : counts.index,
             'monte_carlo_samples' : np.arange(args.monte_carlo_samples)}
     samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
     samples.to_netcdf(args.output_inference)

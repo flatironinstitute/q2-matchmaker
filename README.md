@@ -32,7 +32,7 @@ git clone https://github.com/flatironinstitute/q2-matchmaker.git
 cd q2-matchmaker
 source install.sh
 pip install -e .
-qiime dev refresh-cache   # this is optional. 
+qiime dev refresh-cache   # this is optional.
 ```
 
 # qiime2 Tutorial
@@ -52,7 +52,7 @@ qiime matchmaker negative-binomial-case-control \
     --i-table table.qza \
     --m-matching-ids-file sample_metadata.txt --m-matching-ids-column reps \
     --m-groups-file sample_metadata.txt --m-groups-column diff \
-    --p-control-group 0 \
+    --p-treatment-group 0 \
     --o-differentials differentials.qza
 ```
 
@@ -134,9 +134,8 @@ case_control_disbatch.py \
     --metadata-file sample_metadata.txt \
     --matching-ids reps \
     --groups diff \
-    --control-group 0 \
+    --treatment-group 0 \
     --monte-carlo-samples 1000 \
-    --local-directory /scratch \
     --output-inference differentials.nc
 ```
 
@@ -144,18 +143,55 @@ If this script is saved in a file called `launch.sh`, it can be run as follows
 ```
 sbatch -n 10 -c 4 --mem 8GB launch.sh
 ```
-Where it would be run using 10 processes, each allocated with 4 cores and 8GB per process.
+Where it would be run using 10 processes, each allocated with 4 cores and 8GB per process. An example slurm script is also provided in the examples folder.
+You may see a ton of files being generated - these are diagnostics files primarily for debugging.  See the Other considerations sections.
 
-The command is very similar to the qiime2 command, but there are some very nuisanced differences, The resources need to be carefully allocated depending on the dataset.  In addition, large datasets with thousands of microbes will generate thousands of microbes, which will put stress on a networked file system.  Therefore, it is important to specify the `--local-directory` to save intermediate files to node local storage, which is much faster to access than the networked file system.  Every system is different, your favorite systems admin will know the location of the node local storage.
-
-Finally, persistence is never a guarantee with cluster systems, jobs will fail, in which you may need to relaunch jobs.  You may need to modify the `biom-table` to filter out ids that succeed (see [here](https://biom-format.org/documentation/generated/biom.table.Table.filter.html)).  You may also need to rescue your intermediate files if you saved them to node local storage. If you remember your node ids, you can recover them via ssh as follows
-```bash
-for remote in {node1,node2,...}
-do
-   ssh $remote 'cp /scratch/*.nc your_directory')
-done
+At this moment in time, the `case_control_disbatch.py` is better supported than the qiime2 command.  If you investigate the `differentials.nc`, you will notice a different
+ layout, namely if you run
+```python
+import arviz as az
+inf = az.from_netcdf('differentials.nc')
+inf
 ```
-Once this is done, you can stitch together your individual runs using the `case_control_merge.py` command as follows
+you may see the following output.
+```
+Inference data with groups:
+          > posterior
+          > posterior_predictive
+          > log_likelihood
+          > sample_stats
+```
+You will note that there are new fields, namely `posterior_predictive` and `log_likelihood`.  These new objects can aid with additional diagnostics such as Bayesian R2 or other out-of-distribution statistics.  For more, check out the [Stan documentation](https://mc-stan.org/users/documentation/).
+
+This object is also better labeled, the feature names and sample names are all intact.  Specifically, investigating `inf.posterior` will yield
+```
+Dimensions:        (chain: 4, control_dim_0: 50, disp_dim_0: 2, draw: 1000, features: 10, samples: 100)
+Coordinates:
+  * chain          (chain) int64 0 1 2 3
+  * draw           (draw) int64 0 1 2 3 4 5 6 7 ... 993 994 995 996 997 998 999
+  * control_dim_0  (control_dim_0) int64 0 1 2 3 4 5 6 ... 43 44 45 46 47 48 49
+  * disp_dim_0     (disp_dim_0) int64 0 1
+  * features       (features) object 'o0' 'o1' 'o2' 'o3' ... 'o6' 'o7' 'o8' 'o9'
+  * samples        (samples) object 's75' 's98' 's22' ... 's48' 's69' 's54'
+Data variables:
+    control        (features, chain, draw, control_dim_0) float64 ...
+    diff           (features, chain, draw) float64 ...
+    mu             (features, chain, draw) float64 ...
+    sigma          (features, chain, draw) float64 ...
+    disp           (features, chain, draw, disp_dim_0) float64 ...
+Attributes:
+    created_at:                 2021-06-16T04:40:37.233277
+    arviz_version:              0.11.2
+    inference_library:          cmdstanpy
+    inference_library_version:  0.9.68
+
+```
+## Other considerations
+
+This command is very similar to the qiime2 command, but there are some very nuisanced differences, The resources need to be carefully allocated depending on the dataset.  In addition, large datasets with thousands of microbes will generate thousands of microbes, which will put stress on a networked file system.  Therefore, it is important to specify the `--local-directory` to save intermediate files to node local storage, which is much faster to access than the networked file system.  Every system is different, your favorite systems admin will know the location of the node local storage.
+
+## What to do when crap hits the fan?
+Persistence is never a guarantee with cluster systems, jobs will fail, in which you may need to relaunch jobs.  You may need to modify the `biom-table` to filter out ids that succeed (see [here](https://biom-format.org/documentation/generated/biom.table.Table.filter.html)). Now q2_matchmaker will store intermediate files for you -- if you didn't specify an intermediate folder, it would be stored until newly created folder called `intermediate`.  Once your relaunched jobs have completed, you can stitch together your individual runs using the `case_control_merge.py` command as follows
 ```
 case_control_merge.py \
     --biom-table table.biom \
@@ -167,4 +203,3 @@ And wahla, you now have an arviz object that you can open in python via
 import arviz as az
 inf = az.from_netcdf('differentials.nc')
 ```
-
