@@ -48,7 +48,8 @@ if __name__ == '__main__':
     counts = pd.DataFrame(np.array(table.matrix_data.todense()).T,
                           index=table.ids(),
                           columns=table.ids(axis='observation'))
-    metadata = pd.read_table(args.metadata_file, index_col=0, comment='#')
+    metadata = pd.read_table(args.metadata_file, comment='#', dtype=str)
+    metadata = metadata.set_index(metadata.columns[0])
     matching_ids = metadata[args.matching_ids]
     groups = metadata[args.groups]
     # match everything up

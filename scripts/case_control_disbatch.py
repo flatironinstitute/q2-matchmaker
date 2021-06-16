@@ -63,7 +63,8 @@ if __name__ == '__main__':
     counts = pd.DataFrame(np.array(table.matrix_data.todense()).T,
                           index=table.ids(),
                           columns=table.ids(axis='observation'))
-    metadata = pd.read_table(args.metadata_file, index_col=0, comment='#')
+    metadata = pd.read_table(args.metadata_file, comment='#', dtype=str)
+    metadata = metadata.set_index(metadata.columns[0])
     matching_ids = metadata[args.matching_ids]
     groups = metadata[args.groups]
     # match everything up
@@ -78,6 +79,9 @@ if __name__ == '__main__':
         control_loc = np.log(1 / counts.shape[1])
     else:
         control_loc = args.control_loc
+
+    if not os.path.exists(args.intermediate_directory):
+        os.mkdir(args.intermediate_directory)
 
     # Launch disbatch
     ## First create a temporary file with all of the tasks
@@ -103,7 +107,8 @@ if __name__ == '__main__':
                         # slurm logs
                         f' &> {args.local_directory}/{feature_id}.log;'
                         f'cp {args.local_directory}/{feature_id}.nc '
-                        f'{args.intermediate_directory}/{feature_id}.nc\n')
+                        f'{args.intermediate_directory}/{feature_id}.nc\n'
+                )
                 print(cmd_)
                 fh.write(cmd_)
         ## Run disBatch with the SLURM environmental parameters
@@ -120,10 +125,11 @@ if __name__ == '__main__':
             print("Output: \n{}\n".format(output))
 
     # Aggregate results
-    inference_files = [f'{args.local_directory}/{feature_id}.nc'
+    inference_files = [f'{args.intermediate_directory}/{feature_id}.nc'
                        for feature_id in counts.columns]
     inf_list = [az.from_netcdf(x) for x in inference_files]
     coords={'features' : counts.columns,
+            'samples' : counts.index,
             'monte_carlo_samples' : np.arange(args.monte_carlo_samples)}
     samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
     samples.to_netcdf(args.output_inference)
