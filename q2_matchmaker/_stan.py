@@ -199,4 +199,3 @@ def merge_inferences(inf_list, log_likelihood, posterior_predictive,
         all_group_inferences.append(group_inf)
 
     return az.concat(*all_group_inferences)
-
