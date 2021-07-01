@@ -36,7 +36,6 @@ model {
   diff ~ normal(mu, sigma);
   // vague normal prior for controls
   control ~ normal(control_loc, control_scale);
-
   // generating counts
   for (z in 1:Z){
     n = S[z];
@@ -53,7 +52,7 @@ generated quantities {
   for (n in 1:N){
     vector[D] lam = control[cc_ids[n]] + diff * cc_bool[n];
     vector[D] s = disp[cc_bool[n] + 1];
-    y_predict[n] = lognormal_rng(lam, s);
-    log_lhood[n] = lognormal_lpdf(y[n] | lam, s);
+    y_predict[n,] = lognormal_rng(lam, s);
+    log_lhood[n,] = lognormal_lpdf(y[n,] | lam, s);
   }
 }

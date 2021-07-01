@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import pickle
 from cmdstanpy import CmdStanModel, CmdStanMCMC
 from sklearn.preprocessing import LabelEncoder
+from scipy.sparse import coo_matrix
 import tempfile
 import json
 import arviz as az
@@ -67,18 +68,16 @@ def _case_control_sim(n=100, d=10, depth=50):
     return table, md, diff
 
 
-
 def _case_control_full(counts : np.array,
                        case_ctrl_ids : np.array,
                        case_member : np.array,
                        depth : int,
                        mc_samples : int=1000,
-                       seed : int = None) -> (CmdStanModel, CmdStanMCMC):
+                       seed : int = None) -> (CmdStanModel, az.InferenceData):
     dat = _case_control_data(counts, case_ctrl_ids,
                              case_member, depth)
     #initialization for controls
     init_ctrl = alr(multiplicative_replacement(
-
         closure(counts[~np.array(dat['cc_bool'])] + 1)))
 
     # Actual stan modeling
@@ -90,7 +89,7 @@ def _case_control_full(counts : np.array,
         with open(data_path, 'w') as f:
             json.dump(dat, f)
         posterior = sm.sample(data=data_path, iter_sampling=mc_samples,
-                              chains=4, iter_warmup=mc_samples // 2,
+                              chains=4, iter_warmup=mc_samples,
                               inits={'control': init_ctrl},
                               seed = seed,
                               adapt_delta = 0.95, max_treedepth = 20)
@@ -162,6 +161,55 @@ def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
         'cc_ids' : list(map(int, case_ids + 1))
     }
     return dat
+
+
+def _case_control_lognormal_data(
+        counts : np.array,
+        case_ctrl_ids : np.array,
+        case_member : np.array):
+    case_encoder = LabelEncoder()
+    case_encoder.fit(case_ctrl_ids)
+    case_ids = case_encoder.transform(case_ctrl_ids)
+    sparse_data = coo_matrix(counts)
+    N, D = counts.shape
+    sample_ids = sparse_data.row + 1
+    feature_ids = sparse_data.col + 1
+    counts = sparse_data.data
+    dat = {
+        'N' : N,
+        'D' : D,
+        'C' : int(max(case_ids) + 1),
+        'y' : counts.astype(int).tolist(),
+        'S' : sample_ids.astype(int).tolist(),
+        'F' : feature_ids.astype(int).tolist(),
+        'cc_bool' : list(map(int, case_member)),
+        'cc_ids' : list(map(int, case_ids + 1))
+    }
+    return dat
+
+
+def _case_control_lognormal(counts : np.array,
+                            case_ctrl_ids : np.array,
+                            case_member : np.array,
+                            mc_samples : int=1000,
+                            seed : int = None) -> (CmdStanModel, az.InferenceData):
+    dat = _case_control_lognormal_data(counts, case_ctrl_ids,
+                             case_member, depth)
+
+    # Actual stan modeling
+    code = os.path.join(os.path.dirname(__file__),
+                        'assets/lognormal_case_control.stan')
+    sm = CmdStanModel(stan_file=code)
+    with tempfile.TemporaryDirectory() as temp_dir_name:
+        data_path = os.path.join(temp_dir_name, 'data.json')
+        with open(data_path, 'w') as f:
+            json.dump(dat, f)
+        posterior = sm.sample(data=data_path, iter_sampling=mc_samples,
+                              chains=4, iter_warmup=mc_samples,
+                              seed = seed,
+                              adapt_delta = 0.95, max_treedepth = 20)
+        posterior.diagnose()
+        return sm, posterior
 
 
 def merge_inferences(inf_list, log_likelihood, posterior_predictive,
