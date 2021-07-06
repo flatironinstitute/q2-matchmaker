@@ -2,9 +2,11 @@ import unittest
 import qiime2
 from q2_matchmaker._method import (
     negative_binomial_case_control,
+    normal_case_control,
     matching)
 from q2_matchmaker._stan import (
-    _case_control_sim, _case_control_full, _case_control_data)
+    _case_control_sim, _case_control_full, _case_control_data,
+    _case_control_normal_sim)
 from skbio.stats.composition import clr_inv
 
 import biom
@@ -115,9 +117,34 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
             biom_table,
             matchings, diffs,
             monte_carlo_samples = 100,
-            reference_group = '0')
-        self.assertIsInstance(res, az.InferenceData)
+            control_group = '0')
+        self.assertIsInstance(samples, az.InferenceData)
 
+
+class TestNormalCaseControl(unittest.TestCase):
+
+    def setUp(self):
+        np.random.seed(0)
+        self.N, self.D = 50, 3
+        self.table, self.metadata, self.diff = _case_control_normal_sim(
+            n=self.N, d=self.D)
+
+    def test_normal_case_control(self):
+        sids = [f's{i}' for i in range(self.N)]
+        matchings = qiime2.CategoricalMetadataColumn(
+            pd.Series(list(map(str, self.metadata['reps'])),
+                      index=pd.Index(sids, name='id'),
+                      name='n'))
+        diffs = qiime2.CategoricalMetadataColumn(
+            pd.Series(list(map(str, self.metadata['diff'])),
+                      index=pd.Index(sids, name='id'),
+                      name='n'))
+        samples = normal_case_control(
+            self.table,
+            matchings, diffs,
+            monte_carlo_samples = 100,
+            control_group = '0')
+        self.assertIsInstance(samples, az.InferenceData)
 
 
 if __name__ == '__main__':
