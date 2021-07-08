@@ -48,7 +48,7 @@ def normal_case_control(
         groups: qiime2.CategoricalMetadataColumn,
         control_group : str,
         monte_carlo_samples: int = 2000,
-        mu_scale : float = 100,
+        mu_scale : float = 1,
         sigma_scale : float = 1,
         disp_scale : float = 1,
         control_loc : float = 100,

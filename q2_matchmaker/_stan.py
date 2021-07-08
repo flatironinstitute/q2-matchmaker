@@ -161,7 +161,6 @@ def _case_control_normal_full(
     dat['disp_scale'] = disp_scale
     dat['control_loc'] = control_loc
     dat['control_scale'] = control_scale
-
     # Actual stan modeling
     code = os.path.join(os.path.dirname(__file__),
                         'assets/normal_case_control.stan')
