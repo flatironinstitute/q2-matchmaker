@@ -1,7 +1,7 @@
 import importlib
 import qiime2.plugin
 import qiime2.sdk
-from qiime2.plugin import (Str, Int, List,
+from qiime2.plugin import (Str, Int, List, Float,
                            MetadataColumn, Categorical)
 from q2_matchmaker import __version__
 
@@ -11,6 +11,7 @@ from q2_matchmaker._format import (
 )
 from q2_matchmaker._method import (
     negative_binomial_case_control,
+    normal_case_control,
     matching
 )
 from q2_types.feature_table import FeatureTable, Frequency
@@ -76,6 +77,11 @@ plugin.methods.register_function(
         'groups': MetadataColumn[Categorical],
         'monte_carlo_samples': Int,
         'control_group': Str,
+        'mu_scale': Float,
+        'sigma_scale': Float,
+        'disp_scale': Float,
+        'control_loc': Float,
+        'control_scale': Float
     },
     outputs=[
         ('differentials', MonteCarloTensor)
@@ -97,6 +103,21 @@ plugin.methods.register_function(
         ),
         "control_group": (
             'Specifies the control group.'
+        ),
+        "mu_scale": (
+            'The mean of the differential prior.'
+        ),
+        "sigma_scale": (
+            'The scale of the differential prior.'
+        ),
+        "disp_scale": (
+            'The scale of the overdispersion factor.'
+        ),
+        "control_loc": (
+            'The mean of the control abundances.'
+        ),
+        "control_scale": (
+            'The scale of the control abundances.'
         )
     },
     name='Positive Normal Case Control Estimation',
