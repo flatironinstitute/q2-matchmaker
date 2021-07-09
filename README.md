@@ -21,7 +21,7 @@ rm qiime2-2020.11-py36-linux-conda.yml
 
 There are a few additional dependencies that you will need to install, namely
 ```
-pip install git+git@github.com:mortonjt/q2-types.git
+pip install https://github.com/mortonjt/q2-types.git
 pip install arviz
 pip install cmdstanpy
 ```
