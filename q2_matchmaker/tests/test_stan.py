@@ -67,10 +67,9 @@ class TestCaseControlSingle(unittest.TestCase):
                 mc_samples=500)
             rm = res['posterior']['diff'].mean()
             rs = res['posterior']['diff'].std()
-            self.assertTrue(
-                (rm - 2 * rs) <= self.diff[i] and
-                (self.diff[i] <= (rm + 2 * rs))
-            )
+            self.assertTrue((rm - 2 * rs) <= self.diff[i])
+            self.assertTrue((self.diff[i] <= (rm + 2 * rs))
+
 
 
 if __name__ == '__main__':
