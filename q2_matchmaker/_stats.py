@@ -69,23 +69,23 @@ def spherical_test(X: np.array, p=0.95, center=True):
     return d < r, r, d
 
 
-def effect_size(X : pd.DataFrame) -> pd.DataFrame:
+def effect_size(x: pd.DataFrame) -> pd.DataFrame:
     """ aldex2 style estimate of effect size. """
     y = x - x.mean(axis=0)   # CLR transform posterior
     ym, ys = y.mean(axis=1), y.var(axis=1, ddof=1)
     ye = ym / ys
+    diffs = x.copy()
     diffs['effect_size'] = ye
     diffs['effect_std'] = 1 / ys
     # Compute effect size pvalues
-    tt, pvals = ttest_1samp(y.values, popmean = 0, axis=1)
+    tt, pvals = ttest_1samp(y.values, popmean=0, axis=1)
     diffs['tstat'] = tt
     diffs['pvalue'] = pvals
     return diffs
 
 
-
-def logodds_ranking(X : pd.DataFrame) -> pd.Series:
-    """ Computes \log p(max) / p(min) from posterior distribution. """
+def logodds_ranking(x: pd.DataFrame) -> pd.Series:
+    """ Computes log p(max) / p(min) from posterior distribution. """
     b = x.apply(np.argmin, axis=0)
     t = x.apply(np.argmax, axis=0)
     countb = b.value_counts()
@@ -94,11 +94,14 @@ def logodds_ranking(X : pd.DataFrame) -> pd.Series:
     countt.index = x.index[countt.index]
     countb.name = 'counts_bot'
     countt.name = 'counts_top'
-    diffs = pd.merge(diffs, countb, left_index=True, right_index=True, how='left')
-    diffs = pd.merge(diffs, countt, left_index=True, right_index=True, how='left')
+    diffs = pd.merge(x, countb,
+                     left_index=True, right_index=True, how='left')
+    diffs = pd.merge(x, countt,
+                     left_index=True, right_index=True, how='left')
     diffs = diffs.fillna(0)
-    diffs['prob_top'] = (diffs['counts_top'] + 1) / (diffs['counts_top'] + 1).sum()
-    diffs['prob_bot'] = (diffs['counts_bot'] + 1) / (diffs['counts_bot'] + 1).sum()
+    ct, cb = diffs['counts_top'], diffs['counts_bot']
+    diffs['prob_top'] = (ct + 1) / (ct + 1).sum()
+    diffs['prob_bot'] = (cb + 1) / (cb + 1).sum()
     diffs['prob_lr'] = diffs.apply(
         lambda x: np.log(x['prob_top'] / x['prob_bot']), axis=1)
     diffs = diffs.replace([np.inf, -np.inf, np.nan], 0)
