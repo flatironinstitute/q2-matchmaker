@@ -42,7 +42,7 @@ jobs:
 
       - name: Install main qiime2 branch
         shell: bash -l {0}
-        run: pip install git+git://github.com/qiime2/qiime2.git
+        run: pip install git+git://github.com/qiime2/qiime2.git dill
 
       - name: Install working branch of q2_types
         shell: bash -l {0}
