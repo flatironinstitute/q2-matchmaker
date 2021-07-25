@@ -2,21 +2,23 @@ import qiime2
 import numpy as np
 import pandas as pd
 import arviz as az
-import biom
 from q2_matchmaker._matching import _matchmaker
 from typing import List
+from q2_matchmaker._stan import _case_control_data
+from q2_matchmaker._stan import _case_control_full
 
 
 def negative_binomial_case_control(
         table: pd.DataFrame,
         matching_ids: qiime2.CategoricalMetadataColumn,
         groups: qiime2.CategoricalMetadataColumn,
-        treatment_group : str,
+        treatment_group: str,
         monte_carlo_samples: int = 2000) -> az.InferenceData:
     reference_group = treatment_group
     metadata = pd.DataFrame({'cc_ids': matching_ids.to_series(),
                              'groups': groups.to_series()})
-    metadata['groups'] = (metadata['groups'] == reference_group).astype(np.int64)
+    metadata['groups'] = (metadata['groups'] == reference_group)
+    metadata['groups'] = metadata['groups'].astype(np.int64)
 
     # take intersection
     idx = list(set(metadata.index) & set(table.index))
@@ -41,10 +43,10 @@ def negative_binomial_case_control(
     return samples
 
 
-def matching(sample_metadata : qiime2.Metadata,
-             status : str,
-             match_columns : List[str],
-             prefix : str = None) -> qiime2.Metadata:
+def matching(sample_metadata: qiime2.Metadata,
+             status: str,
+             match_columns: List[str],
+             prefix: str = None) -> qiime2.Metadata:
     new_column = 'matching_id'
     columns = [sample_metadata.get_column(col) for col in match_columns]
     types = [isinstance(m, qiime2.CategoricalMetadataColumn) for m in columns]
