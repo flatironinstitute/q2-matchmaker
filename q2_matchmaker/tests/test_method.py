@@ -3,9 +3,7 @@ import qiime2
 from q2_matchmaker._method import (
     negative_binomial_case_control,
     matching)
-from q2_matchmaker._stan import (
-    _case_control_sim, _case_control_full, _case_control_data)
-from skbio.stats.composition import clr_inv
+from q2_matchmaker._stan import _case_control_sim
 
 import biom
 import numpy as np
@@ -111,13 +109,12 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
             pd.Series(list(map(str, self.metadata['diff'])),
                       index=pd.Index(sids, name='id'),
                       name='n'))
-        samples = negative_binomial_case_control(
+        res = negative_binomial_case_control(
             biom_table,
             matchings, diffs,
-            monte_carlo_samples = 100,
-            reference_group = '0')
+            monte_carlo_samples=100,
+            reference_group='0')
         self.assertIsInstance(res, az.InferenceData)
-
 
 
 if __name__ == '__main__':
