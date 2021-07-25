@@ -1,13 +1,10 @@
-import qiime2
 import argparse
 from biom import load_table
 import pandas as pd
 import numpy as np
-import xarray as xr
-from q2_matchmaker._stan import _case_control_single, merge_inferences
-import time
-import logging
-import subprocess, os
+from q2_matchmaker._stan import merge_inferences
+import subprocess
+import os
 import tempfile
 import arviz as az
 
@@ -25,7 +22,8 @@ if __name__ == '__main__':
                           '(i.e. treatment vs control groups).'),
         required=True)
     parser.add_argument(
-        '--treatment-group', help='The name of the treatment group.', required=True)
+        '--treatment-group', help='The name of the treatment group.',
+        required=True)
     parser.add_argument(
         '--mu-scale', help='Scale of differentials.',
         type=float, required=False, default=10)
@@ -80,31 +78,33 @@ if __name__ == '__main__':
         os.mkdir(args.intermediate_directory)
 
     # Launch disbatch
-    ## First create a temporary file with all of the tasks
+    # First create a temporary file with all of the tasks
     with tempfile.TemporaryDirectory() as temp_dir_name:
         print(temp_dir_name)
         task_fp = os.path.join(temp_dir_name, 'tasks.txt')
         print(task_fp)
         with open(task_fp, 'w') as fh:
             for feature_id in counts.columns:
-                cmd_ = ('case_control_single.py '
-                        f'--biom-table {args.biom_table} '
-                        f'--metadata-file {args.metadata_file} '
-                        f'--matching-ids {args.matching_ids} '
-                        f'--groups {args.groups} '
-                        f'--treatment-group {args.treatment_group} '
-                        f'--feature-id {feature_id} '
-                        f'--mu-scale {args.mu_scale} '
-                        f'--control-loc {control_loc} '
-                        f'--control-scale {args.control_scale} '
-                        f'--monte-carlo-samples {args.monte_carlo_samples} '
-                        f'--chains {args.chains} '
-                        f'--output-tensor {args.intermediate_directory}/{feature_id}.nc'
-                        f' &> {args.intermediate_directory}/{feature_id}.log;\n'
+                int_dir = args.intermediate_directory
+                cmd_ = (
+                    'case_control_single.py '
+                    f'--biom-table {args.biom_table} '
+                    f'--metadata-file {args.metadata_file} '
+                    f'--matching-ids {args.matching_ids} '
+                    f'--groups {args.groups} '
+                    f'--treatment-group {args.treatment_group} '
+                    f'--feature-id {feature_id} '
+                    f'--mu-scale {args.mu_scale} '
+                    f'--control-loc {control_loc} '
+                    f'--control-scale {args.control_scale} '
+                    f'--monte-carlo-samples {args.monte_carlo_samples} '
+                    f'--chains {args.chains} '
+                    f'--output-tensor {int_dir}/{feature_id}.nc '
+                    f'&> {args.intermediate_directory}/{feature_id}.log;\n'
                 )
                 print(cmd_)
                 fh.write(cmd_)
-        ## Run disBatch with the SLURM environmental parameters
+        # Run disBatch with the SLURM environmental parameters
         cmd = f'disBatch {task_fp}'
         if args.job_extra is not None:
             cmd = f'{args.job_extra}; {cmd}'
@@ -121,8 +121,8 @@ if __name__ == '__main__':
     inference_files = [f'{args.intermediate_directory}/{feature_id}.nc'
                        for feature_id in counts.columns]
     inf_list = [az.from_netcdf(x) for x in inference_files]
-    coords={'features' : counts.columns,
-            'samples' : counts.index,
-            'monte_carlo_samples' : np.arange(args.monte_carlo_samples)}
+    coords = {'features': counts.columns,
+              'samples': counts.index,
+              'monte_carlo_samples': np.arange(args.monte_carlo_samples)}
     samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)
     samples.to_netcdf(args.output_inference)
