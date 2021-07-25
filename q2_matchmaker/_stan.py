@@ -82,7 +82,7 @@ def _case_control_full(counts: np.array,
         posterior = sm.sample(data=data_path, iter_sampling=mc_samples,
                               chains=4, iter_warmup=mc_samples // 2,
                               inits={'control': init_ctrl},
-                              seed=seed, adapt_deltfa=0.95,
+                              seed=seed, adapt_delta=0.95,
                               max_treedepth=20)
         posterior.diagnose()
         return sm, posterior
