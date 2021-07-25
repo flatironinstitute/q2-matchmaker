@@ -46,7 +46,7 @@ jobs:
 
       - name: Install main qiime2 deps
         shell: bash -l {0}
-        run: conda install dill networkx bibtexparser tzlocal decorator pyyaml python-dateutil
+        run: conda install dill networkx bibtexparser tzlocal decorator pyyaml python-dateutil -c conda-forge
 
       - name: Install working branch of q2_types
         shell: bash -l {0}
