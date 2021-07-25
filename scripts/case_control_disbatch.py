@@ -42,12 +42,8 @@ if __name__ == '__main__':
         '--chains', help='Number of MCMC chains.', type=int,
         required=False, default=4)
     parser.add_argument(
-        '--local-directory',
-        help=('Node specific storage location to.'),
-        type=str, required=False, default='/scratch')
-    parser.add_argument(
         '--intermediate-directory',
-        help=('Intermediate directory to store on NFS.'),
+        help=('Directory to store intermediate results'),
         type=str, required=False, default='intermediate')
     parser.add_argument(
         '--job-extra',
@@ -103,11 +99,8 @@ if __name__ == '__main__':
                         f'--control-scale {args.control_scale} '
                         f'--monte-carlo-samples {args.monte_carlo_samples} '
                         f'--chains {args.chains} '
-                        f'--output-tensor {args.local_directory}/{feature_id}.nc'
-                        # slurm logs
-                        f' &> {args.local_directory}/{feature_id}.log;'
-                        f'cp {args.local_directory}/{feature_id}.nc '
-                        f'{args.intermediate_directory}/{feature_id}.nc\n'
+                        f'--output-tensor {args.intermediate_directory}/{feature_id}.nc'
+                        f' &> {args.intermediate_directory}/{feature_id}.log;\n'
                 )
                 print(cmd_)
                 fh.write(cmd_)

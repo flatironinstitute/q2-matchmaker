@@ -59,7 +59,9 @@ if __name__ == '__main__':
     matching_ids, groups = matching_ids.values, groups.values
     groups = (groups == args.treatment_group).astype(np.int64)
     depth = counts.sum(axis=1)
-
+    if len(counts) == 0 or len(groups) == 0:
+        raise ValueError('No samples overlap with biom table or metadata. '
+                         'Double check your sample names.')
     if args.control_loc is None:
         # Dirichilet-like prior
         control_loc = np.log(1 / counts.shape[1])
