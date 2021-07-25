@@ -1,23 +1,14 @@
 import os
 import numpy as np
 import pandas as pd
-import seaborn as sns
-from skbio.stats.composition import (clr, closure, alr, alr_inv,
+from skbio.stats.composition import (closure, alr, alr_inv,
                                      multiplicative_replacement)
 from sklearn.preprocessing import LabelEncoder
-import pickle
-import os
-from skbio.stats.composition import ilr_inv
-import matplotlib.pyplot as plt
-import pickle
 from cmdstanpy import CmdStanModel, CmdStanMCMC
-from sklearn.preprocessing import LabelEncoder
 import tempfile
 import json
 import xarray as xr
 import arviz as az
-import biom
-
 
 
 def _case_control_sim(n=100, d=10, depth=50):
@@ -68,18 +59,16 @@ def _case_control_sim(n=100, d=10, depth=50):
     return table, md, diff
 
 
-
-def _case_control_full(counts : np.array,
-                       case_ctrl_ids : np.array,
-                       case_member : np.array,
-                       depth : int,
-                       mc_samples : int=1000,
-                       seed : int = None) -> (CmdStanModel, CmdStanMCMC):
+def _case_control_full(counts: np.array,
+                       case_ctrl_ids: np.array,
+                       case_member: np.array,
+                       depth: int,
+                       mc_samples: int = 1000,
+                       seed: int = None) -> (CmdStanModel, CmdStanMCMC):
     dat = _case_control_data(counts, case_ctrl_ids,
                              case_member, depth)
-    #initialization for controls
+    # initialization for controls
     init_ctrl = alr(multiplicative_replacement(
-
         closure(counts[~np.array(dat['cc_bool'])] + 1)))
 
     # Actual stan modeling
@@ -93,21 +82,20 @@ def _case_control_full(counts : np.array,
         posterior = sm.sample(data=data_path, iter_sampling=mc_samples,
                               chains=4, iter_warmup=mc_samples // 2,
                               inits={'control': init_ctrl},
-                              seed = seed,
-                              adapt_delta = 0.95, max_treedepth = 20)
+                              seed=seed, adapt_deltfa=0.95,
+                              max_treedepth=20)
         posterior.diagnose()
         return sm, posterior
 
 
-
-def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
-                         case_member : np.array,
-                         depth : int,
-                         mu_scale : float=10,
-                         control_loc : float=0,
-                         control_scale : float=10,
-                         mc_samples : int=1000,
-                         chains : int=1) -> (CmdStanModel, CmdStanMCMC):
+def _case_control_single(counts: np.array, case_ctrl_ids: np.array,
+                         case_member: np.array,
+                         depth: int,
+                         mu_scale: float = 10,
+                         control_loc: float = 0,
+                         control_scale: float = 10,
+                         mc_samples: int = 1000,
+                         chains: int = 1) -> (CmdStanModel, CmdStanMCMC):
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
@@ -117,12 +105,12 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                         'assets/nb_case_control_single.stan')
     sm = CmdStanModel(stan_file=code)
     dat = {
-        'N' : len(counts),
-        'C' : int(max(case_ids) + 1),
-        'depth' : list(np.log(depth)),
-        'y' : list(map(int, counts.astype(np.int64))),
-        'cc_bool' : list(map(int, case_member)),
-        'cc_ids' : list(map(int, case_ids + 1)),
+        'N': len(counts),
+        'C': int(max(case_ids) + 1),
+        'depth': list(np.log(depth)),
+        'y': list(map(int, counts.astype(np.int64))),
+        'cc_bool': list(map(int, case_member)),
+        'cc_ids': list(map(int, case_ids + 1)),
         'mu_scale': mu_scale,
         'sigma_scale': 1,
         'disp_scale': 1,
@@ -138,29 +126,27 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
         # for recommended parameters for poisson log normal
         fit = sm.sample(data=data_path, iter_sampling=mc_samples,
                         chains=chains, iter_warmup=mc_samples,
-                        adapt_delta = 0.9, max_treedepth = 20)
+                        adapt_delta=0.9, max_treedepth=20)
         fit.diagnose()
-        inf = az.from_cmdstanpy(fit,
-                                posterior_predictive='y_predict',
+        inf = az.from_cmdstanpy(fit, posterior_predictive='y_predict',
                                 log_likelihood='log_lhood')
         return inf
 
 
-
-def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
-                       case_member : np.array,
-                       depth : int):
+def _case_control_data(counts: np.array, case_ctrl_ids: np.array,
+                       case_member: np.array,
+                       depth: int):
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
     dat = {
-        'N' : counts.shape[0],
-        'D' : counts.shape[1],
-        'C' : int(max(case_ids) + 1),
-        'depth' : list(np.log(depth)),
-        'y' : counts.astype(int).tolist(),
-        'cc_bool' : list(map(int, case_member)),
-        'cc_ids' : list(map(int, case_ids + 1))
+        'N': counts.shape[0],
+        'D': counts.shape[1],
+        'C': int(max(case_ids) + 1),
+        'depth': list(np.log(depth)),
+        'y': counts.astype(int).tolist(),
+        'cc_bool': list(map(int, case_member)),
+        'cc_ids': list(map(int, case_ids + 1))
     }
     return dat
 
@@ -196,7 +182,7 @@ def merge_inferences(inf_list, log_likelihood, posterior_predictive,
         # Set concatenation dim coords
         group_ds = group_dict[group].assign_coords(
             {concatenation_name: coords[concatenation_name],
-             sample_name : coords[sample_name]}
+             sample_name: coords[sample_name]}
         )
         group_inf = az.InferenceData(**{group: group_ds})  # hacky
         all_group_inferences.append(group_inf)
