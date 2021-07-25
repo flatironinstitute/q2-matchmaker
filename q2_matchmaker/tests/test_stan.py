@@ -1,10 +1,7 @@
 import unittest
 import numpy as np
-from q2_matchmaker._stan import (
-    _case_control_sim, _case_control_full,
-    _case_control_data, _case_control_single,
-
-)
+from q2_matchmaker._stan import _case_control_sim, _case_control_full
+from q2_matchmaker._stan import _case_control_data, _case_control_single
 from skbio.stats.composition import alr_inv, clr
 
 
@@ -68,8 +65,7 @@ class TestCaseControlSingle(unittest.TestCase):
             rm = res['posterior']['diff'].mean()
             rs = res['posterior']['diff'].std()
             self.assertTrue((rm - 2 * rs) <= self.diff[i])
-            self.assertTrue((self.diff[i] <= (rm + 2 * rs))
-
+            self.assertTrue((self.diff[i] <= (rm + 2 * rs)))
 
 
 if __name__ == '__main__':
