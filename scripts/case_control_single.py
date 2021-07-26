@@ -1,11 +1,8 @@
-import qiime2
 import argparse
 from biom import load_table
 import pandas as pd
 import numpy as np
-import xarray as xr
 from q2_matchmaker._stan import _case_control_single
-import time
 
 
 if __name__ == '__main__':
@@ -21,7 +18,8 @@ if __name__ == '__main__':
                           '(i.e. treatment vs control groups).'),
         required=True)
     parser.add_argument(
-        '--treatment-group', help='The name of the control group.', required=True)
+        '--treatment-group', help='The name of the control group.',
+        required=True)
     parser.add_argument(
         '--feature-id', help='Feature to analyze.', type=str, required=True)
     parser.add_argument(
@@ -59,7 +57,9 @@ if __name__ == '__main__':
     matching_ids, groups = matching_ids.values, groups.values
     groups = (groups == args.treatment_group).astype(np.int64)
     depth = counts.sum(axis=1)
-
+    if len(counts) == 0 or len(groups) == 0:
+        raise ValueError('No samples overlap with biom table or metadata. '
+                         'Double check your sample names.')
     if args.control_loc is None:
         # Dirichilet-like prior
         control_loc = np.log(1 / counts.shape[1])

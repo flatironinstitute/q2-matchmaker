@@ -10,7 +10,7 @@ First install conda
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 ```
 
-If you want to use the qiime2 version, go ahead and install the most up-to-date version.
+If you want to use the qiime2 version, go ahead and install the most up-to-date version. But use at your own risk, since this is still work in progress.
 
 Then install qiime2
 ```
@@ -34,86 +34,6 @@ source install.sh
 pip install -e .
 qiime dev refresh-cache   # this is optional.
 ```
-
-# qiime2 Tutorial
-
-If you want to just a feel how to run this pipeline, there is a qiime2 interface available.
-But do note that this pipeline is much too slow to handle practically sized datasets.
-Go to SLURM tutorial to see how to speed up the computation on a high performance compute cluster.
-
-First go to the examples folder via `cd examples`.
-Then load the biom table as a qiime2 Artifact.
-```bash
-qiime tools import --input-path table.biom --output-path table.qza --type FeatureTable[Frequency]
-```
-
-```bash
-qiime matchmaker negative-binomial-case-control \
-    --i-table table.qza \
-    --m-matching-ids-file sample_metadata.txt --m-matching-ids-column reps \
-    --m-groups-file sample_metadata.txt --m-groups-column diff \
-    --p-treatment-group 0 \
-    --o-differentials differentials.qza
-```
-
-There is a chance that you may get an error, that looks like as follows
-```
-Plugin error from matchmaker:
-
-  Unable to compile Stan model file: XXX ...
-
-Debug info has been saved to XXX ...
-```
-
-The solution is to run `export TBB_CXX_TYPE=gcc` first, then rerun the above qiime2 command.
-
-Once you have the differentials file you can upload the inference data object into [Arviz](https://arviz-devs.github.io/arviz/index.html) in Python as follows
-
-```python
-import qiime2
-import arviz as az
-inf = qiime2.Artifact.load('differentials.nc.qza').view(az.InferenceData)
-```
-Investigating the `inf   object will yield something like
-```
-Inference data with groups:
-        > posterior
-        > sample_stats
-        > observed_data
-```
-where `inf.posterior` contains all of the posterior draws of the variables of interest, `inf.sample_stats` contains information about MCMC diagnostics and `inf.observed_data` contains the preprocessed data formatted for the MCMC model.
-
-Investigating `inf.posterior` will yield something like
-```
-<xarray.Dataset>
-Dimensions:          (chain: 4, control_dim_0: 450, diff_dim_0: 9, disp_dim_0: 20, draw: 2000, mu_dim_0: 9, sigma_dim_0: 9, y_predict_dim_0: 1000)
-Coordinates:
-  * chain            (chain) int64 0 1 2 3
-  * draw             (draw) int64 0 1 2 3 4 5 ... 1994 1995 1996 1997 1998 1999
-  * control_dim_0    (control_dim_0) int64 0 1 2 3 4 5 ... 445 446 447 448 449
-  * diff_dim_0       (diff_dim_0) int64 0 1 2 3 4 5 6 7 8
-  * mu_dim_0         (mu_dim_0) int64 0 1 2 3 4 5 6 7 8
-  * sigma_dim_0      (sigma_dim_0) int64 0 1 2 3 4 5 6 7 8
-  * disp_dim_0       (disp_dim_0) int64 0 1 2 3 4 5 6 7 ... 13 14 15 16 17 18 19
-  * y_predict_dim_0  (y_predict_dim_0) int64 0 1 2 3 4 5 ... 995 996 997 998 999
-Data variables:
-    control          (chain, draw, control_dim_0) float64 ...
-    diff             (chain, draw, diff_dim_0) float64 ...
-    mu               (chain, draw, mu_dim_0) float64 ...
-    sigma            (chain, draw, sigma_dim_0) float64 ...
-    disp             (chain, draw, disp_dim_0) float64 ...
-    y_predict        (chain, draw, y_predict_dim_0) float64 ...
-Attributes:
-    created_at:                 2021-06-14T23:14:42.049366
-    arviz_version:              0.11.2
-    inference_library:          cmdstanpy
-    inference_library_version:  0.9.68
-```
-Here, we had 100 biological samples, and 10 microbial species.  The differentials are in an ALR representation with the first species being the reference frame.
-
-The most relevant variable here is `diff` which measures the differentials between the cases and the controls.  You can extract that via `inf.posterior['diff']`.
-
-Otherwise, make sure to check out [Arviz](https://arviz-devs.github.io/arviz/index.html), since it provides an extremely comprehensive API for diagnostics, so it is recommended to check it out.
 
 # SLURM Tutorial
 
@@ -203,3 +123,83 @@ And wahla, you now have an arviz object that you can open in python via
 import arviz as az
 inf = az.from_netcdf('differentials.nc')
 ```
+
+# qiime2 Tutorial (Work In Progress)
+
+If you want to just a feel how to run this pipeline, there is a qiime2 interface available.
+But do note that this pipeline is much too slow to handle practically sized datasets.
+Go to SLURM tutorial to see how to speed up the computation on a high performance compute cluster.
+
+First go to the examples folder via `cd examples`.
+Then load the biom table as a qiime2 Artifact.
+```bash
+qiime tools import --input-path table.biom --output-path table.qza --type FeatureTable[Frequency]
+```
+
+```bash
+qiime matchmaker negative-binomial-case-control \
+    --i-table table.qza \
+    --m-matching-ids-file sample_metadata.txt --m-matching-ids-column reps \
+    --m-groups-file sample_metadata.txt --m-groups-column diff \
+    --p-treatment-group 0 \
+    --o-differentials differentials.qza
+```
+
+There is a chance that you may get an error, that looks like as follows
+```
+Plugin error from matchmaker:
+
+  Unable to compile Stan model file: XXX ...
+
+Debug info has been saved to XXX ...
+```
+
+The solution is to run `export TBB_CXX_TYPE=gcc` first, then rerun the above qiime2 command.
+
+Once you have the differentials file you can upload the inference data object into [Arviz](https://arviz-devs.github.io/arviz/index.html) in Python as follows
+
+```python
+import qiime2
+import arviz as az
+inf = qiime2.Artifact.load('differentials.nc.qza').view(az.InferenceData)
+```
+Investigating the `inf   object will yield something like
+```
+Inference data with groups:
+        > posterior
+        > sample_stats
+        > observed_data
+```
+where `inf.posterior` contains all of the posterior draws of the variables of interest, `inf.sample_stats` contains information about MCMC diagnostics and `inf.observed_data` contains the preprocessed data formatted for the MCMC model.
+
+Investigating `inf.posterior` will yield something like
+```
+<xarray.Dataset>
+Dimensions:          (chain: 4, control_dim_0: 450, diff_dim_0: 9, disp_dim_0: 20, draw: 2000, mu_dim_0: 9, sigma_dim_0: 9, y_predict_dim_0: 1000)
+Coordinates:
+  * chain            (chain) int64 0 1 2 3
+  * draw             (draw) int64 0 1 2 3 4 5 ... 1994 1995 1996 1997 1998 1999
+  * control_dim_0    (control_dim_0) int64 0 1 2 3 4 5 ... 445 446 447 448 449
+  * diff_dim_0       (diff_dim_0) int64 0 1 2 3 4 5 6 7 8
+  * mu_dim_0         (mu_dim_0) int64 0 1 2 3 4 5 6 7 8
+  * sigma_dim_0      (sigma_dim_0) int64 0 1 2 3 4 5 6 7 8
+  * disp_dim_0       (disp_dim_0) int64 0 1 2 3 4 5 6 7 ... 13 14 15 16 17 18 19
+  * y_predict_dim_0  (y_predict_dim_0) int64 0 1 2 3 4 5 ... 995 996 997 998 999
+Data variables:
+    control          (chain, draw, control_dim_0) float64 ...
+    diff             (chain, draw, diff_dim_0) float64 ...
+    mu               (chain, draw, mu_dim_0) float64 ...
+    sigma            (chain, draw, sigma_dim_0) float64 ...
+    disp             (chain, draw, disp_dim_0) float64 ...
+    y_predict        (chain, draw, y_predict_dim_0) float64 ...
+Attributes:
+    created_at:                 2021-06-14T23:14:42.049366
+    arviz_version:              0.11.2
+    inference_library:          cmdstanpy
+    inference_library_version:  0.9.68
+```
+Here, we had 100 biological samples, and 10 microbial species.  The differentials are in an ALR representation with the first species being the reference frame.
+
+The most relevant variable here is `diff` which measures the differentials between the cases and the controls.  You can extract that via `inf.posterior['diff']`.
+
+Otherwise, make sure to check out [Arviz](https://arviz-devs.github.io/arviz/index.html), since it provides an extremely comprehensive API for diagnostics, so it is recommended to check it out.

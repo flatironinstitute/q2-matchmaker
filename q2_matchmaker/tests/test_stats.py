@@ -1,4 +1,4 @@
-from q2_matchmaker._stats import hotelling_ttest, spherical_test, rank_test
+from q2_matchmaker._stats import hotelling_ttest, spherical_test
 import numpy as np
 import unittest
 
@@ -22,10 +22,6 @@ class TestStats(unittest.TestCase):
         self.assertTrue(ans[0])
         ans = spherical_test(self.Xreal)
         self.assertFalse(ans[0])
-
-    def test_rank(self):
-        rank_test(self.Xrand)
-        rank_test(self.Xreal)
 
 
 if __name__ == '__main__':

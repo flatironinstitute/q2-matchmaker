@@ -3,9 +3,7 @@ import qiime2
 from q2_matchmaker._method import (
     negative_binomial_case_control,
     matching)
-from q2_matchmaker._stan import (
-    _case_control_sim, _case_control_full, _case_control_data)
-from skbio.stats.composition import clr_inv
+from q2_matchmaker._stan import _case_control_sim
 
 import biom
 import numpy as np
@@ -33,6 +31,7 @@ class TestMatching(unittest.TestCase):
             columns=['Sex', 'Age', 'Diagnosis']
         ))
 
+    @unittest.skip('qiime2 not supported yet.')
     def test_matching(self):
         matched_metadata = matching(self.metadata, 'Diagnosis', ['Age', 'Sex'])
         matched_metadata = matched_metadata.to_dataframe()
@@ -42,6 +41,7 @@ class TestMatching(unittest.TestCase):
                       index=self.index, name='matching_id')
         )
 
+    @unittest.skip('qiime2 not supported yet.')
     def test_matching_prefix(self):
         matched_metadata = matching(
             self.metadata, 'Diagnosis', ['Age', 'Sex'], prefix='cool')
@@ -55,6 +55,7 @@ class TestMatching(unittest.TestCase):
                       index=self.index, name='matching_id')
         )
 
+    @unittest.skip('qiime2 not supported yet.')
     def test_matching_nans(self):
         self.index = pd.Index(['a1', 'a2', 'a3', 'a4',
                                'b1', 'b2', 'b3', 'b4', 'b5'],
@@ -98,6 +99,7 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
         self.table, self.metadata, self.diff = _case_control_sim(
             n=self.N, d=self.D, depth=100)
 
+    @unittest.skip('qiime2 not supported yet.')
     def test_negative_binomial_case_control(self):
         sids = [f's{i}' for i in range(self.N)]
         biom_table = biom.Table(self.table.values.T,
@@ -111,13 +113,12 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
             pd.Series(list(map(str, self.metadata['diff'])),
                       index=pd.Index(sids, name='id'),
                       name='n'))
-        samples = negative_binomial_case_control(
+        res = negative_binomial_case_control(
             biom_table,
             matchings, diffs,
-            monte_carlo_samples = 100,
-            reference_group = '0')
+            monte_carlo_samples=100,
+            reference_group='0')
         self.assertIsInstance(res, az.InferenceData)
-
 
 
 if __name__ == '__main__':
