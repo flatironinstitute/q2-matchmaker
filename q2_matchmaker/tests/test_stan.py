@@ -42,8 +42,8 @@ class TestCaseControl(unittest.TestCase):
         rm = res_diff.mean(0)
         rs = res_diff.std(0)
         for i in range(len(self.diff)):
-            self.assertTrue((rm[i] - 3 * rs[i]) <= exp_diff[i])
-            self.assertTrue((exp_diff[i] <= (rm[i] + 3 * rs[i])))
+            self.assertTrue((rm[i] - 4 * rs[i]) <= exp_diff[i])
+            self.assertTrue((exp_diff[i] <= (rm[i] + 4 * rs[i])))
 
 
 class TestCaseControlSingle(unittest.TestCase):
