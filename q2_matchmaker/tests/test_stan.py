@@ -56,7 +56,7 @@ class TestCaseControlSingle(unittest.TestCase):
 
     def test_cc_full(self):
         for i in range(self.table.shape[1]):
-            res = _case_control_single(
+            _case_control_single(
                 self.table.values[:, i],
                 case_ctrl_ids=self.metadata['reps'].values,
                 case_member=self.metadata['diff'].values,
