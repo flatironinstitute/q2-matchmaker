@@ -65,64 +65,6 @@ plugin.methods.register_function(
     citations=[]
 )
 
-plugin.methods.register_function(
-    function=normal_case_control,
-    inputs={'table': FeatureTable[Frequency]},
-    parameters={
-        'matching_ids': MetadataColumn[Categorical],
-        'groups': MetadataColumn[Categorical],
-        'monte_carlo_samples': Int,
-        'control_group': Str,
-        'mu_scale': Float,
-        'sigma_scale': Float,
-        'disp_scale': Float,
-        'control_loc': Float,
-        'control_scale': Float
-    },
-    outputs=[
-        ('differentials', MonteCarloTensor)
-    ],
-    input_descriptions={
-        "table": "Input table of counts.",
-    },
-    output_descriptions={
-        'differentials': ('Output posterior differentials learned from the '
-                          'Positive normal model.'),
-    },
-    parameter_descriptions={
-        'matching_ids': ('The matching ids to link case-control samples '),
-        'groups': ('The categorical sample metadata column to test for '
-                   'differential abundance across.'),
-        "monte_carlo_samples": (
-            'Number of monte carlo samples to draw from '
-            'posterior distribution.'
-        ),
-        "control_group": (
-            'Specifies the control group.'
-        ),
-        "mu_scale": (
-            'The mean of the differential prior.'
-        ),
-        "sigma_scale": (
-            'The scale of the differential prior.'
-        ),
-        "disp_scale": (
-            'The scale of the overdispersion factor.'
-        ),
-        "control_loc": (
-            'The mean of the control abundances.'
-        ),
-        "control_scale": (
-            'The scale of the control abundances.'
-        )
-    },
-    name='Positive Normal Case Control Estimation',
-    description=("Fits a Positive Normal model to estimate "
-                 "biased log-fold change"),
-
-    citations=[]
-)
-
 
 plugin.methods.register_function(
     function=matching,
