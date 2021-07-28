@@ -4,14 +4,7 @@ from q2_matchmaker._method import (
     negative_binomial_case_control,
     normal_case_control,
     matching)
-<<<<<<< HEAD
-from q2_matchmaker._stan import (
-    _case_control_sim, _case_control_full, _case_control_data,
-    _case_control_normal_sim)
-from skbio.stats.composition import clr_inv
-=======
 from q2_matchmaker._stan import _case_control_sim
->>>>>>> 56189df62a204de9c0054cefe6e193695d0d743d
 
 import biom
 import numpy as np
@@ -60,7 +53,7 @@ class TestMatching(unittest.TestCase):
                        'cool_1', 'cool_1',
                        'cool_2', 'cool_2',
                        'cool_3', 'cool_3'],
-                      index=self.index, name='matching_id')
+p                      index=self.index, name='matching_id')
         )
 
     @unittest.skip('qiime2 not supported yet.')
@@ -124,44 +117,10 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
         res = negative_binomial_case_control(
             biom_table,
             matchings, diffs,
-<<<<<<< HEAD
             monte_carlo_samples = 100,
-            control_group = '0')
+            treatment_group = '0')
         self.assertIsInstance(samples, az.InferenceData)
 
 
-class TestNormalCaseControl(unittest.TestCase):
-
-    def setUp(self):
-        np.random.seed(0)
-        self.N, self.D = 50, 3
-        self.table, self.metadata, self.diff = _case_control_normal_sim(
-            n=self.N, d=self.D)
-
-    def test_normal_case_control(self):
-        sids = [f's{i}' for i in range(self.N)]
-        matchings = qiime2.CategoricalMetadataColumn(
-            pd.Series(list(map(str, self.metadata['reps'])),
-                      index=pd.Index(sids, name='id'),
-                      name='n'))
-        diffs = qiime2.CategoricalMetadataColumn(
-            pd.Series(list(map(str, self.metadata['diff'])),
-                      index=pd.Index(sids, name='id'),
-                      name='n'))
-        samples = normal_case_control(
-            self.table,
-            matchings, diffs,
-            monte_carlo_samples = 100,
-            control_group = '0')
-        self.assertIsInstance(samples, az.InferenceData)
-
-
-=======
-            monte_carlo_samples=100,
-            reference_group='0')
-        self.assertIsInstance(res, az.InferenceData)
-
-
->>>>>>> 56189df62a204de9c0054cefe6e193695d0d743d
 if __name__ == '__main__':
     unittest.main()
