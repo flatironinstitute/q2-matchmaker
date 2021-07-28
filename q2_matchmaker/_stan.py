@@ -180,7 +180,8 @@ def _case_control_normal_full(
 def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                          case_member : np.array,
                          depth : int,
-                         mu_scale : float=10,
+                         diff_scale : float=10,
+                         disp_scale : float=1,
                          control_loc : float=0,
                          control_scale : float=10,
                          mc_samples : int=1000,
@@ -200,12 +201,10 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
         'y' : list(map(int, counts.astype(np.int64))),
         'cc_bool' : list(map(int, case_member)),
         'cc_ids' : list(map(int, case_ids + 1)),
-        'mu_scale': mu_scale,
-        'sigma_scale': 1,
-        'disp_scale': 1,
+        'diff_scale': diff_scale,
+        'disp_scale': disp_scale,
         'control_loc': control_loc,
         'control_scale': control_scale,
-
     }
     with tempfile.TemporaryDirectory() as temp_dir_name:
         data_path = os.path.join(temp_dir_name, 'data.json')
