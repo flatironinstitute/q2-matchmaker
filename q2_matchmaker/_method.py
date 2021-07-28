@@ -2,23 +2,25 @@ import qiime2
 import numpy as np
 import pandas as pd
 import arviz as az
-import biom
 from q2_matchmaker._matching import _matchmaker
 from q2_matchmaker._stan import _case_control_normal_full, _case_control_full
 from typing import List
+from q2_matchmaker._stan import _case_control_data
+from q2_matchmaker._stan import _case_control_full
 
 
 def negative_binomial_case_control(
         table: pd.DataFrame,
         matching_ids: qiime2.CategoricalMetadataColumn,
         groups: qiime2.CategoricalMetadataColumn,
-        control_group : str,
+        treatment_group: str,
         monte_carlo_samples: int = 2000) -> az.InferenceData:
-    reference_group = control_group
+    reference_group = treatment_group
     metadata = pd.DataFrame({'cc_ids': matching_ids.to_series(),
                              'groups': groups.to_series()})
     metadata['groups'] = (metadata['groups'] == reference_group)
     metadata['groups'] = metadata['groups'].astype(np.int64)
+
     # take intersection
     idx = list(set(metadata.index) & set(table.index))
     counts = table.loc[idx]
@@ -42,44 +44,10 @@ def negative_binomial_case_control(
     return samples
 
 
-def normal_case_control(
-        table: pd.DataFrame,
-        matching_ids: qiime2.CategoricalMetadataColumn,
-        groups: qiime2.CategoricalMetadataColumn,
-        control_group : str,
-        monte_carlo_samples: int = 2000,
-        mu_scale : float = 1.,
-        sigma_scale : float = 1.,
-        disp_scale : float = 1.,
-        control_loc : float = 100.,
-        control_scale : float = 100.) -> az.InferenceData:
-    reference_group = control_group
-    metadata = pd.DataFrame({'cc_ids': matching_ids.to_series(),
-                             'groups': groups.to_series()})
-    metadata['groups'] = (metadata['groups'] == reference_group)
-    metadata['groups'] = metadata['groups'].astype(np.int64)
-    # take intersection
-    idx = list(set(metadata.index) & set(table.index))
-    counts = table.loc[idx]
-    metadata = metadata.loc[idx]
-    depth = counts.sum(axis=1)
-    _, posterior = _case_control_normal_full(
-        counts=counts.values,
-        case_ctrl_ids=metadata['cc_ids'].values,
-        case_member=metadata['groups'].values,
-        mc_samples=monte_carlo_samples)
-    opts = {
-        'coords': {'diff': list(table.columns)}
-    }
-    samples = az.from_cmdstanpy(posterior=posterior, **opts)
-
-    return samples
-
-
-def matching(sample_metadata : qiime2.Metadata,
-             status : str,
-             match_columns : List[str],
-             prefix : str = None) -> qiime2.Metadata:
+def matching(sample_metadata: qiime2.Metadata,
+             status: str,
+             match_columns: List[str],
+             prefix: str = None) -> qiime2.Metadata:
     new_column = 'matching_id'
     columns = [sample_metadata.get_column(col) for col in match_columns]
     types = [isinstance(m, qiime2.CategoricalMetadataColumn) for m in columns]

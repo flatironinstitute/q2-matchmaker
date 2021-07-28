@@ -1,14 +1,10 @@
-import importlib
 import qiime2.plugin
 import qiime2.sdk
 from qiime2.plugin import (Str, Int, List, Float,
                            MetadataColumn, Categorical)
 from q2_matchmaker import __version__
 
-from q2_matchmaker._type import  Matching
-from q2_matchmaker._format import (
-    MatchingFormat, MatchingDirectoryFormat
-)
+from q2_matchmaker._type import Matching
 from q2_matchmaker._method import (
     negative_binomial_case_control,
     normal_case_control,
@@ -38,7 +34,7 @@ plugin.methods.register_function(
         'matching_ids': MetadataColumn[Categorical],
         'groups': MetadataColumn[Categorical],
         'monte_carlo_samples': Int,
-        'control_group': Str,
+        'treatment_group': Str,
     },
     outputs=[
         ('differentials', MonteCarloTensor)
@@ -58,8 +54,8 @@ plugin.methods.register_function(
             'Number of monte carlo samples to draw from '
             'posterior distribution.'
         ),
-        "control_group": (
-            'Specifies the control group.'
+        "treatment_group": (
+            'Specifies the treatment group.'
         )
     },
     name='Negative Binomial Case Control Estimation',

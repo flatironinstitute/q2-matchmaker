@@ -1,11 +1,8 @@
-import qiime2
 import argparse
 from biom import load_table
 import pandas as pd
 import numpy as np
-import xarray as xr
 from q2_matchmaker._stan import _case_control_single
-import time
 
 
 if __name__ == '__main__':
@@ -21,7 +18,8 @@ if __name__ == '__main__':
                           '(i.e. treatment vs control groups).'),
         required=True)
     parser.add_argument(
-        '--control-group', help='The name of the control group.', required=True)
+        '--treatment-group', help='The name of the control group.',
+        required=True)
     parser.add_argument(
         '--feature-id', help='Feature to analyze.', type=str, required=True)
     parser.add_argument(
@@ -48,7 +46,8 @@ if __name__ == '__main__':
     counts = pd.DataFrame(np.array(table.matrix_data.todense()).T,
                           index=table.ids(),
                           columns=table.ids(axis='observation'))
-    metadata = pd.read_table(args.metadata_file, index_col=0, comment='#')
+    metadata = pd.read_table(args.metadata_file, comment='#', dtype=str)
+    metadata = metadata.set_index(metadata.columns[0])
     matching_ids = metadata[args.matching_ids]
     groups = metadata[args.groups]
     # match everything up
@@ -56,9 +55,11 @@ if __name__ == '__main__':
     counts, matching_ids, groups = [x.loc[idx] for x in
                                     (counts, matching_ids, groups)]
     matching_ids, groups = matching_ids.values, groups.values
-    groups = (groups == args.control_group).astype(np.int64)
+    groups = (groups == args.treatment_group).astype(np.int64)
     depth = counts.sum(axis=1)
-
+    if len(counts) == 0 or len(groups) == 0:
+        raise ValueError('No samples overlap with biom table or metadata. '
+                         'Double check your sample names.')
     if args.control_loc is None:
         # Dirichilet-like prior
         control_loc = np.log(1 / counts.shape[1])

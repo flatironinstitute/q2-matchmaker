@@ -1,22 +1,14 @@
 import os
 import numpy as np
 import pandas as pd
-import seaborn as sns
-from skbio.stats.composition import (clr, closure, alr, alr_inv,
+from skbio.stats.composition import (closure, alr, alr_inv,
                                      multiplicative_replacement)
 from sklearn.preprocessing import LabelEncoder
-import pickle
-import os
-from skbio.stats.composition import ilr_inv
-import matplotlib.pyplot as plt
-import pickle
 from cmdstanpy import CmdStanModel, CmdStanMCMC
-from sklearn.preprocessing import LabelEncoder
 import tempfile
 import json
+import xarray as xr
 import arviz as az
-import biom
-
 
 
 def _case_control_sim(n=100, d=10, depth=50):
@@ -113,17 +105,16 @@ def _case_control_normal_sim(n=100, d=10):
     return table, md, diff
 
 
-def _case_control_full(counts : np.array,
-                       case_ctrl_ids : np.array,
-                       case_member : np.array,
-                       depth : int,
-                       mc_samples : int=1000,
-                       seed : int = None) -> (CmdStanMCMC, az.InferenceData):
+def _case_control_full(counts: np.array,
+                       case_ctrl_ids: np.array,
+                       case_member: np.array,
+                       depth: int,
+                       mc_samples: int = 1000,
+                       seed: int = None) -> (CmdStanModel, CmdStanMCMC):
     dat = _case_control_data(counts, case_ctrl_ids,
                              case_member, depth)
-    #initialization for controls
+    # initialization for controls
     init_ctrl = alr(multiplicative_replacement(
-
         closure(counts[~np.array(dat['cc_bool'])] + 1)))
 
     # Actual stan modeling
@@ -137,8 +128,8 @@ def _case_control_full(counts : np.array,
         posterior = sm.sample(data=data_path, iter_sampling=mc_samples,
                               chains=4, iter_warmup=mc_samples,
                               inits={'control': init_ctrl},
-                              seed = seed,
-                              adapt_delta = 0.95, max_treedepth = 20)
+                              seed=seed, adapt_delta=0.95,
+                              max_treedepth=20)
         posterior.diagnose()
         return sm, posterior
 
@@ -214,13 +205,11 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
         # for recommended parameters for poisson log normal
         fit = sm.sample(data=data_path, iter_sampling=mc_samples,
                         chains=chains, iter_warmup=mc_samples,
-                        adapt_delta = 0.9, max_treedepth = 20)
+                        adapt_delta=0.9, max_treedepth=20)
         fit.diagnose()
-        inf = az.from_cmdstanpy(fit,
-                                posterior_predictive='y_predict',
+        inf = az.from_cmdstanpy(fit, posterior_predictive='y_predict',
                                 log_likelihood='log_lhood')
         return inf
-
 
 
 def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
@@ -243,36 +232,38 @@ def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
 
 
 def merge_inferences(inf_list, log_likelihood, posterior_predictive,
-                     coords, concatenation_name='features'):
+                     coords, concatenation_name='features',
+                     sample_name='samples'):
     group_list = []
-    group_list.append(dask.persist(*[x.posterior for x in inf_list]))
-    group_list.append(dask.persist(*[x.sample_stats for x in inf_list]))
+    group_list.append([x.posterior for x in inf_list])
+    group_list.append([x.sample_stats for x in inf_list])
     if log_likelihood is not None:
-        group_list.append(dask.persist(*[x.log_likelihood for x in inf_list]))
+        group_list.append([x.log_likelihood for x in inf_list])
     if posterior_predictive is not None:
         group_list.append(
-            dask.persist(*[x.posterior_predictive for x in inf_list])
+            [x.posterior_predictive for x in inf_list]
         )
 
-    group_list = dask.compute(*group_list)
     po_ds = xr.concat(group_list[0], concatenation_name)
     ss_ds = xr.concat(group_list[1], concatenation_name)
     group_dict = {"posterior": po_ds, "sample_stats": ss_ds}
 
     if log_likelihood is not None:
         ll_ds = xr.concat(group_list[2], concatenation_name)
+        ll_ds = ll_ds.rename_dims({'log_lhood_dim_0': sample_name})
         group_dict["log_likelihood"] = ll_ds
     if posterior_predictive is not None:
         pp_ds = xr.concat(group_list[3], concatenation_name)
+        pp_ds = pp_ds.rename_dims({'y_predict_dim_0': sample_name})
         group_dict["posterior_predictive"] = pp_ds
 
     all_group_inferences = []
     for group in group_dict:
         # Set concatenation dim coords
         group_ds = group_dict[group].assign_coords(
-            {concatenation_name: coords[concatenation_name]}
+            {concatenation_name: coords[concatenation_name],
+             sample_name: coords[sample_name]}
         )
-
         group_inf = az.InferenceData(**{group: group_ds})  # hacky
         all_group_inferences.append(group_inf)
 

@@ -10,7 +10,7 @@ First install conda
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 ```
 
-If you want to use the qiime2 version, go ahead and install the most up-to-date version.
+If you want to use the qiime2 version, go ahead and install the most up-to-date version. But use at your own risk, since this is still work in progress.
 
 Then install qiime2
 ```
@@ -21,7 +21,7 @@ rm qiime2-2020.11-py36-linux-conda.yml
 
 There are a few additional dependencies that you will need to install, namely
 ```
-pip install git+git@github.com:mortonjt/q2-types.git
+pip install https://github.com/mortonjt/q2-types.git
 pip install arviz
 pip install cmdstanpy
 ```
@@ -32,10 +32,99 @@ git clone https://github.com/flatironinstitute/q2-matchmaker.git
 cd q2-matchmaker
 source install.sh
 pip install -e .
-qiime dev refresh-cache   # this is optional. 
+qiime dev refresh-cache   # this is optional.
 ```
 
-# qiime2 Tutorial
+# SLURM Tutorial
+
+If you really want apply this to typical microbiome datasets, chances are, you will need to use the SLURM interface. However, note that it will be considerably more difficult to use compared to the qiime2 interface, since it will require some cluster configuration. To use this, you will need to install [disBatch](https://github.com/flatironinstitute/disBatch). This can be installed via
+```
+pip install git+https://github.com/flatironinstitute/disBatch.git
+```
+
+An example SLURM script would look like as follows
+
+```bash
+#!/bin/sh
+#SBATCH ... # whatever slurm params you need
+conda activate qiime2-2021.4
+export TBB_CXX_TYPE=gcc
+case_control_disbatch.py \
+    --biom-table table.biom \
+    --metadata-file sample_metadata.txt \
+    --matching-ids reps \
+    --groups diff \
+    --treatment-group 0 \
+    --monte-carlo-samples 1000 \
+    --output-inference differentials.nc
+```
+
+If this script is saved in a file called `launch.sh`, it can be run as follows
+```
+sbatch -n 10 -c 4 --mem 8GB launch.sh
+```
+Where it would be run using 10 processes, each allocated with 4 cores and 8GB per process. An example slurm script is also provided in the examples folder.
+You may see a ton of files being generated - these are diagnostics files primarily for debugging.  See the Other considerations sections.
+
+At this moment in time, the `case_control_disbatch.py` is better supported than the qiime2 command.  If you investigate the `differentials.nc`, you will notice a different
+ layout, namely if you run
+```python
+import arviz as az
+inf = az.from_netcdf('differentials.nc')
+inf
+```
+you may see the following output.
+```
+Inference data with groups:
+          > posterior
+          > posterior_predictive
+          > log_likelihood
+          > sample_stats
+```
+You will note that there are new fields, namely `posterior_predictive` and `log_likelihood`.  These new objects can aid with additional diagnostics such as Bayesian R2 or other out-of-distribution statistics.  For more, check out the [Stan documentation](https://mc-stan.org/users/documentation/).
+
+This object is also better labeled, the feature names and sample names are all intact.  Specifically, investigating `inf.posterior` will yield
+```
+Dimensions:        (chain: 4, control_dim_0: 50, disp_dim_0: 2, draw: 1000, features: 10, samples: 100)
+Coordinates:
+  * chain          (chain) int64 0 1 2 3
+  * draw           (draw) int64 0 1 2 3 4 5 6 7 ... 993 994 995 996 997 998 999
+  * control_dim_0  (control_dim_0) int64 0 1 2 3 4 5 6 ... 43 44 45 46 47 48 49
+  * disp_dim_0     (disp_dim_0) int64 0 1
+  * features       (features) object 'o0' 'o1' 'o2' 'o3' ... 'o6' 'o7' 'o8' 'o9'
+  * samples        (samples) object 's75' 's98' 's22' ... 's48' 's69' 's54'
+Data variables:
+    control        (features, chain, draw, control_dim_0) float64 ...
+    diff           (features, chain, draw) float64 ...
+    mu             (features, chain, draw) float64 ...
+    sigma          (features, chain, draw) float64 ...
+    disp           (features, chain, draw, disp_dim_0) float64 ...
+Attributes:
+    created_at:                 2021-06-16T04:40:37.233277
+    arviz_version:              0.11.2
+    inference_library:          cmdstanpy
+    inference_library_version:  0.9.68
+
+```
+## Other considerations
+
+This command is very similar to the qiime2 command, but there are some very nuisanced differences, The resources need to be carefully allocated depending on the dataset.  In addition, large datasets with thousands of microbes will generate thousands of microbes, which will put stress on a networked file system.  Therefore, it is important to specify the `--local-directory` to save intermediate files to node local storage, which is much faster to access than the networked file system.  Every system is different, your favorite systems admin will know the location of the node local storage.
+
+## What to do when crap hits the fan?
+Persistence is never a guarantee with cluster systems, jobs will fail, in which you may need to relaunch jobs.  You may need to modify the `biom-table` to filter out ids that succeed (see [here](https://biom-format.org/documentation/generated/biom.table.Table.filter.html)). Now q2_matchmaker will store intermediate files for you -- if you didn't specify an intermediate folder, it would be stored until newly created folder called `intermediate`.  Once your relaunched jobs have completed, you can stitch together your individual runs using the `case_control_merge.py` command as follows
+```
+case_control_merge.py \
+    --biom-table table.biom \
+    --inference-files your_directory/*
+    --output-inference differentials.nc
+```
+And wahla, you now have an arviz object that you can open in python via
+```python
+import arviz as az
+inf = az.from_netcdf('differentials.nc')
+```
+
+# qiime2 Tutorial (Work In Progress)
 
 If you want to just a feel how to run this pipeline, there is a qiime2 interface available.
 But do note that this pipeline is much too slow to handle practically sized datasets.
@@ -52,7 +141,7 @@ qiime matchmaker negative-binomial-case-control \
     --i-table table.qza \
     --m-matching-ids-file sample_metadata.txt --m-matching-ids-column reps \
     --m-groups-file sample_metadata.txt --m-groups-column diff \
-    --p-control-group 0 \
+    --p-treatment-group 0 \
     --o-differentials differentials.qza
 ```
 
@@ -114,57 +203,3 @@ Here, we had 100 biological samples, and 10 microbial species.  The differential
 The most relevant variable here is `diff` which measures the differentials between the cases and the controls.  You can extract that via `inf.posterior['diff']`.
 
 Otherwise, make sure to check out [Arviz](https://arviz-devs.github.io/arviz/index.html), since it provides an extremely comprehensive API for diagnostics, so it is recommended to check it out.
-
-# SLURM Tutorial
-
-If you really want apply this to typical microbiome datasets, chances are, you will need to use the SLURM interface. However, note that it will be considerably more difficult to use compared to the qiime2 interface, since it will require some cluster configuration. To use this, you will need to install [disBatch](https://github.com/flatironinstitute/disBatch). This can be installed via
-```
-pip install git+https://github.com/flatironinstitute/disBatch.git
-```
-
-An example SLURM script would look like as follows
-
-```bash
-#!/bin/sh
-#SBATCH ... # whatever slurm params you need
-conda activate qiime2-2021.4
-export TBB_CXX_TYPE=gcc
-case_control_disbatch.py \
-    --biom-table table.biom \
-    --metadata-file sample_metadata.txt \
-    --matching-ids reps \
-    --groups diff \
-    --control-group 0 \
-    --monte-carlo-samples 1000 \
-    --local-directory /scratch \
-    --output-inference differentials.nc
-```
-
-If this script is saved in a file called `launch.sh`, it can be run as follows
-```
-sbatch -n 10 -c 4 --mem 8GB launch.sh
-```
-Where it would be run using 10 processes, each allocated with 4 cores and 8GB per process.
-
-The command is very similar to the qiime2 command, but there are some very nuisanced differences, The resources need to be carefully allocated depending on the dataset.  In addition, large datasets with thousands of microbes will generate thousands of microbes, which will put stress on a networked file system.  Therefore, it is important to specify the `--local-directory` to save intermediate files to node local storage, which is much faster to access than the networked file system.  Every system is different, your favorite systems admin will know the location of the node local storage.
-
-Finally, persistence is never a guarantee with cluster systems, jobs will fail, in which you may need to relaunch jobs.  You may need to modify the `biom-table` to filter out ids that succeed (see [here](https://biom-format.org/documentation/generated/biom.table.Table.filter.html)).  You may also need to rescue your intermediate files if you saved them to node local storage. If you remember your node ids, you can recover them via ssh as follows
-```bash
-for remote in {node1,node2,...}
-do
-   ssh $remote 'cp /scratch/*.nc your_directory')
-done
-```
-Once this is done, you can stitch together your individual runs using the `case_control_merge.py` command as follows
-```
-case_control_merge.py \
-    --biom-table table.biom \
-    --inference-files your_directory/*
-    --output-inference differentials.nc
-```
-And wahla, you now have an arviz object that you can open in python via
-```python
-import arviz as az
-inf = az.from_netcdf('differentials.nc')
-```
-
