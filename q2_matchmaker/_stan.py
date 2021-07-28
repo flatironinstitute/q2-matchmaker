@@ -59,52 +59,6 @@ def _case_control_sim(n=100, d=10, depth=50):
     return table, md, diff
 
 
-def _case_control_normal_sim(n=100, d=10):
-    """ Simulate case-controls from positive-bounded Normal distribution
-
-    Parameters
-    ----------
-    n : int
-       Number of samples (must be divisible by 2).
-    d : int
-       Number of microbes
-
-    Returns
-    -------
-    table : pd.DataFrame
-        Simulated counts
-    md : pd.DataFrame
-        Simulated metadata
-    """
-    offset = 100    # to make sure it is strictly positive
-    noise = 0.1
-    diff = np.random.randn(d)
-    ref = np.random.randn(d) + offset
-    table = np.zeros((n, d))
-    diff_md = np.zeros(n)
-    rep_md = np.zeros(n)
-    for i in range(n // 2):
-        delta = np.random.randn(d) * noise
-        r1 = ref + delta
-        r2 = r1 + diff
-        p1 = np.random.normal(r1)
-        p2 = np.random.normal(r2)
-        diff_md[i] = 0
-        diff_md[(n // 2) + i] = 1
-        rep_md[i] = i
-        rep_md[(n // 2) + i] = i
-        table[i] = np.random.normal(p1, 1)
-        table[(n // 2) + i] = np.random.normal(p2, 1)
-    oids = [f'o{x}' for x in range(d)]
-    sids = [f's{x}' for x in range(n)]
-    table = pd.DataFrame(table, index=sids, columns=oids)
-    md = pd.DataFrame({'diff': diff_md.astype(np.int64).astype(np.str),
-                       'reps': rep_md.astype(np.int64).astype(np.str)},
-                      index=sids)
-    md.index.name = 'sample id'
-    return table, md, diff
-
-
 def _case_control_full(counts: np.array,
                        case_ctrl_ids: np.array,
                        case_member: np.array,
@@ -130,40 +84,6 @@ def _case_control_full(counts: np.array,
                               inits={'control': init_ctrl},
                               seed=seed, adapt_delta=0.95,
                               max_treedepth=20)
-        posterior.diagnose()
-        return sm, posterior
-
-
-def _case_control_normal_full(
-        counts : np.array,
-        case_ctrl_ids : np.array,
-        case_member : np.array,
-        mc_samples : int=1000,
-        seed : int = None,
-        mu_scale : float = 100,
-        sigma_scale : float = 1,
-        disp_scale : float = 1,
-        control_loc : float = 100,
-        control_scale : float = 100) -> (CmdStanMCMC, az.InferenceData):
-    dat = _case_control_data(counts, case_ctrl_ids,
-                             case_member)
-    dat['mu_scale'] = mu_scale
-    dat['sigma_scale'] = sigma_scale
-    dat['disp_scale'] = disp_scale
-    dat['control_loc'] = control_loc
-    dat['control_scale'] = control_scale
-    # Actual stan modeling
-    code = os.path.join(os.path.dirname(__file__),
-                        'assets/normal_case_control.stan')
-    sm = CmdStanModel(stan_file=code)
-    with tempfile.TemporaryDirectory() as temp_dir_name:
-        data_path = os.path.join(temp_dir_name, 'data.json')
-        with open(data_path, 'w') as f:
-            json.dump(dat, f)
-        posterior = sm.sample(data=data_path, iter_sampling=mc_samples,
-                              chains=4, iter_warmup=mc_samples,
-                              seed = seed,
-                              adapt_delta = 0.95, max_treedepth = 20)
         posterior.diagnose()
         return sm, posterior
 
