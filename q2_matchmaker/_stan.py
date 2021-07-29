@@ -91,10 +91,10 @@ def _case_control_full(counts: np.array,
 def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                          case_member : np.array,
                          depth : int,
-                         diff_scale : float=10,
+                         diff_scale : float=5,
                          disp_scale : float=1,
                          control_loc : float=0,
-                         control_scale : float=10,
+                         control_scale : float=5,
                          mc_samples : int=1000,
                          chains : int=1) -> (CmdStanModel, CmdStanMCMC):
     case_encoder = LabelEncoder()

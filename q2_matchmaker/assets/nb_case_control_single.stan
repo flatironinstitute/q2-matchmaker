@@ -25,7 +25,7 @@ transformed parameters {
   vector[C] logit_control;    // Mean of the control samples
   vector[N] lam;
   vector[N] phi;
-  logit_control = log(inv_logit(control));
+  logit_control = log_inv_logit(control);
   for (n in 1:N) {
     lam[n] = logit_control[cc_ids[n]];
     if (cc_bool[n]) lam[n] += diff;
@@ -38,7 +38,7 @@ model {
   disp ~ lognormal(0., disp_scale);
   diff ~ normal(0, diff_scale);
   // vague normal prior for controls
-  control_mu ~ normal(control_loc, 5);
+  control_mu ~ normal(control_loc, 3);
   control_sigma ~ lognormal(0, control_scale);
   control ~ normal(control_mu, control_sigma);
   // generating counts

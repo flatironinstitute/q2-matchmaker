@@ -25,14 +25,17 @@ if __name__ == '__main__':
         '--treatment-group', help='The name of the treatment group.',
         required=True)
     parser.add_argument(
-        '--mu-scale', help='Scale of differentials.',
-        type=float, required=False, default=10)
+        '--diff-scale', help='Scale of differentials.',
+        type=float, required=False, default=5)
+    parser.add_argument(
+        '--disp-scale', help='Scale of dispersion.',
+        type=float, required=False, default=1)
     parser.add_argument(
         '--control-loc', help='Center of control log proportions.',
         type=float, required=False, default=None)
     parser.add_argument(
         '--control-scale', help='Scale of control log proportions.',
-        type=float, required=False, default=10)
+        type=float, required=False, default=1)
     parser.add_argument(
         '--monte-carlo-samples', help='Number of monte carlo samples.',
         type=int, required=False, default=1000)
@@ -47,6 +50,10 @@ if __name__ == '__main__':
         '--job-extra',
         help=('Additional job arguments, like loading modules.'),
         type=str, required=False, default=None)
+    parser.add_argument(
+        '--overwrite',
+        help='Overwrite existing intermediate files.',
+        type=str, required=False, default=False)
     parser.add_argument(
         '--output-inference', help='Output inference tensor.',
         type=str, required=True)
@@ -86,6 +93,9 @@ if __name__ == '__main__':
         with open(task_fp, 'w') as fh:
             for feature_id in counts.columns:
                 int_dir = args.intermediate_directory
+                out_fname = f'{int_dir}/{feature_id}.nc'
+                if os.path.exists(out_fname) and not args.overwrite:
+                    continue
                 cmd_ = (
                     'case_control_single.py '
                     f'--biom-table {args.biom_table} '
@@ -94,13 +104,14 @@ if __name__ == '__main__':
                     f'--groups {args.groups} '
                     f'--treatment-group {args.treatment_group} '
                     f'--feature-id {feature_id} '
-                    f'--mu-scale {args.mu_scale} '
+                    f'--diff-scale {args.diff_scale} '
+                    f'--disp-scale {args.disp_scale} '
                     f'--control-loc {control_loc} '
                     f'--control-scale {args.control_scale} '
                     f'--monte-carlo-samples {args.monte_carlo_samples} '
                     f'--chains {args.chains} '
-                    f'--output-tensor {int_dir}/{feature_id}.nc '
-                    f'&> {args.intermediate_directory}/{feature_id}.log;\n'
+                    f'--output-tensor {out_fname} '
+                    f'&> {int_dir}/{feature_id}.log;\n'
                 )
                 print(cmd_)
                 fh.write(cmd_)
