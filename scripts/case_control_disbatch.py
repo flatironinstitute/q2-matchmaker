@@ -51,9 +51,10 @@ if __name__ == '__main__':
         help=('Additional job arguments, like loading modules.'),
         type=str, required=False, default=None)
     parser.add_argument(
-        '--overwrite',
-        help='Overwrite existing intermediate files.',
-        type=str, required=False, default=False)
+        '--no-overwrite',
+        help='Do not overwrite existing intermediate files.',
+        required=False, dest='overwrite', action='store_false')
+    parser.set_defaults(overwrite=True)
     parser.add_argument(
         '--output-inference', help='Output inference tensor.',
         type=str, required=True)
