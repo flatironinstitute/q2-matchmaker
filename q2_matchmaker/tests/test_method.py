@@ -2,6 +2,7 @@ import unittest
 import qiime2
 from q2_matchmaker._method import (
     negative_binomial_case_control,
+    normal_case_control,
     matching)
 from q2_matchmaker._stan import _case_control_sim
 
@@ -117,8 +118,8 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
             biom_table,
             matchings, diffs,
             monte_carlo_samples=100,
-            reference_group='0')
-        self.assertIsInstance(res, az.InferenceData)
+            treatment_group='0')
+        self.assertIsInstance(samples, az.InferenceData)
 
 
 if __name__ == '__main__':

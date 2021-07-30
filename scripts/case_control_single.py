@@ -23,8 +23,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '--feature-id', help='Feature to analyze.', type=str, required=True)
     parser.add_argument(
-        '--mu-scale', help='Scale of differentials.',
+        '--diff-scale', help='Scale of differentials.',
         type=float, required=False, default=10)
+    parser.add_argument(
+        '--disp-scale', help='Scale of dispersion.',
+        type=float, required=False, default=1)
     parser.add_argument(
         '--control-loc', help='Center of control log proportions.',
         type=float, required=False, default=None)
@@ -73,7 +76,8 @@ if __name__ == '__main__':
         depth=depth,
         mc_samples=args.monte_carlo_samples,
         chains=args.chains,
-        mu_scale=args.mu_scale,
+        diff_scale=args.diff_scale,
+        disp_scale=args.disp_scale,
         control_loc=control_loc,
         control_scale=args.control_scale)
 

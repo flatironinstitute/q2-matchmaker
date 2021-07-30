@@ -1,53 +1,56 @@
  data {
-  int<lower=0> C;            // number of controls
-  int<lower=0> N;            // number of samples (2 * C)
-  real depth[N];             // log sequencing depths of microbes
-  int y[N];                  // observed microbe abundances
-  int cc_bool[N];            // case-control true/false
-  int cc_ids[N];             // control ids
+  int<lower=0> C;             // number of controls
+  int<lower=0> N;             // number of samples (2 * C)
+  real depth[N];              // log sequencing depths of microbes
+  int y[N];                   // observed microbe abundances
+  int cc_bool[N];             // case-control true/false
+  int cc_ids[N];              // control ids
   // priors
-  real mu_scale;
-  real sigma_scale;
+  real diff_scale;
   real disp_scale;
   real control_loc;
   real control_scale;
 }
 
 parameters {
-  vector<upper=0>[C] control;         // Mean of the control samples
-  real diff;                 // Difference between case and control
-  real mu;                   // mean prior for diff
-  real<lower=0.001> sigma;   // variance of batch random effects
-  real<lower=0.001> disp[2]; // per microbe dispersion for both case-controls
+  real diff;                  // Difference between case and control
+  real mu;                    // mean prior for diff
+  real<lower=0> disp[2];      // per microbe dispersion for both case-controls
+  real<offset=control_loc, multiplier=3> control_mu;
+  real control_sigma;
+  vector<offset=control_mu, multiplier=control_sigma>[C] control;
+}
+
+transformed parameters {
+  vector[N] lam;
+  vector[N] phi;
+  vector[C] log_control = log_inv_logit(control);
+
+  for (n in 1:N) {
+    lam[n] = log_control[cc_ids[n]];
+    if (cc_bool[n]) lam[n] += diff;
+    phi[n] = inv(disp[cc_bool[n] + 1]);
+  }
 }
 
 model {
-  real lam;
-
   // setting priors ...
-  disp ~ normal(0., disp_scale);
-  sigma ~ normal(0., sigma_scale);
-  mu ~ normal(0, mu_scale);
-  diff ~ normal(mu, sigma);
+  disp ~ lognormal(log(10), disp_scale);
+  diff ~ normal(0, diff_scale);
   // vague normal prior for controls
-  control ~ normal(control_loc, control_scale);
+  control_mu ~ normal(control_loc, 3);
+  control_sigma ~ lognormal(0, control_scale);
+  control ~ normal(control_mu, control_sigma);
 
   // generating counts
-  for (n in 1:N){
-    lam = control[cc_ids[n]] + diff * cc_bool[n];
-    target += neg_binomial_2_log_lpmf(y[n] | lam + depth[n],
-                                      disp[cc_bool[n] + 1]);
-  }
+  y ~ neg_binomial_2_log(lam, phi);
 }
 
 generated quantities {
   vector[N] y_predict;
   vector[N] log_lhood;
   for (n in 1:N){
-    real lam = control[cc_ids[n]] + diff * cc_bool[n];
-    real m = lam + depth[n];
-    real s = disp[cc_bool[n] + 1];
-    y_predict[n] = neg_binomial_2_log_rng(m, s);
-    log_lhood[n] = neg_binomial_2_log_lpmf(y[n] | m, s);
+    y_predict[n] = neg_binomial_2_log_rng(lam[n], phi[n]);
+    log_lhood[n] = neg_binomial_2_log_lpmf(y[n] | lam[n], phi[n]);
   }
 }

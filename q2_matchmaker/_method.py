@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import arviz as az
 from q2_matchmaker._matching import _matchmaker
+from q2_matchmaker._stan import _case_control_normal_full, _case_control_full
 from typing import List
 from q2_matchmaker._stan import _case_control_data
 from q2_matchmaker._stan import _case_control_full

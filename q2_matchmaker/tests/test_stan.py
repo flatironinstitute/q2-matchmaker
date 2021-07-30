@@ -12,6 +12,7 @@ class TestCaseControl(unittest.TestCase):
         self.table, self.metadata, self.diff = _case_control_sim(
             n=50, d=4, depth=100)
 
+    @unittest.skip('_case_control_full is outdated.')
     def test_case_control_full(self):
         # fit once
         sm, posterior = _case_control_full(
