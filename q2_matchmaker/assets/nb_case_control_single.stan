@@ -17,30 +17,34 @@ parameters {
   real diff;                  // Difference between case and control
   real mu;                    // mean prior for diff
   real<lower=0> disp[2];      // per microbe dispersion for both case-controls
-  real control_mu;
-  real control_sigma;
+  vector[C] control_z;
+  vector[C] control_c;
+  vector[C] control_sigma;
 }
 
 transformed parameters {
-  vector[C] logit_control;    // Mean of the control samples
   vector[N] lam;
   vector[N] phi;
-  logit_control = log_inv_logit(control);
+  vector[C] control_mu = control_loc +  control_z * 3;
+  vector[C] control = control_mu + control_c * control_sigma;
+  vector[C] log_control = log_inv_logit(control);
+
   for (n in 1:N) {
-    lam[n] = logit_control[cc_ids[n]];
+    lam[n] = log_control[cc_ids[n]];
     if (cc_bool[n]) lam[n] += diff;
-    phi[n] = 1 ./ disp[cc_bool[n] + 1];
+    phi[n] = inv(disp[cc_bool[n] + 1]);
   }
 }
 
 model {
   // setting priors ...
-  disp ~ lognormal(0., disp_scale);
+  disp ~ lognormal(log(10), disp_scale);
   diff ~ normal(0, diff_scale);
   // vague normal prior for controls
-  control_mu ~ normal(control_loc, 3);
+  control_z ~ std_normal()
+  control_c ~ std_normal()
   control_sigma ~ lognormal(0, control_scale);
-  control ~ normal(control_mu, control_sigma);
+
   // generating counts
   y ~ neg_binomial_2_log(lam, phi);
 }
