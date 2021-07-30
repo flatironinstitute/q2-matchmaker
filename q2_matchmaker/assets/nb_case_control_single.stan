@@ -1,5 +1,5 @@
  data {
-1  int<lower=0> C;             // number of controls
+  int<lower=0> C;             // number of controls
   int<lower=0> N;             // number of samples (2 * C)
   real depth[N];              // log sequencing depths of microbes
   int y[N];                   // observed microbe abundances
