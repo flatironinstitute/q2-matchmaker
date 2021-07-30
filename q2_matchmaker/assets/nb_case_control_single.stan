@@ -14,7 +14,6 @@
 
 parameters {
   real diff;                  // Difference between case and control
-  real mu;                    // mean prior for diff
   real<lower=0> disp[2];      // per microbe dispersion for both case-controls
   real<offset=control_loc, multiplier=3> control_mu;
   real control_sigma;
