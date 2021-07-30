@@ -20,7 +20,6 @@ data {
 parameters {
   matrix[C, D - 1] control;     // Mean of the control samples
   vector[D - 1] diff;           // Difference between case and control
-  vector[D - 1] mu;             // mean prior for diff
   vector<lower=0>[D - 1] sigma; // variance of batch random effects
   matrix<lower=0>[2, D] disp;   // per microbe dispersion for both case-controls
 }
