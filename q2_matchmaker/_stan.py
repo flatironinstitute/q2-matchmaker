@@ -80,7 +80,7 @@ def _case_control_full(counts: np.array,
         with open(data_path, 'w') as f:
             json.dump(dat, f)
         posterior = sm.sample(data=data_path, iter_sampling=mc_samples,
-                              chains=4, iter_warmup=mc_samples,
+                              chains=4, iter_warmup=1000,
                               inits={'control': init_ctrl},
                               seed=seed, adapt_delta=0.95,
                               max_treedepth=20)
@@ -96,6 +96,7 @@ def _case_control_single(counts: np.array, case_ctrl_ids: np.array,
                          control_loc: float = 0,
                          control_scale: float = 5,
                          mc_samples: int = 1000,
+                         num_warmup : int = 2000,
                          chains: int = 1) -> (CmdStanModel, CmdStanMCMC):
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
@@ -121,11 +122,9 @@ def _case_control_single(counts: np.array, case_ctrl_ids: np.array,
         data_path = os.path.join(temp_dir_name, 'data.json')
         with open(data_path, 'w') as f:
             json.dump(dat, f)
-        # see https://mattocci27.github.io/assets/poilog.html
-        # for recommended parameters for poisson log normal
         fit = sm.sample(data=data_path, iter_sampling=mc_samples,
-                        chains=chains, iter_warmup=mc_samples,
-                        adapt_delta=0.9, max_treedepth=20)
+                        chains=chains, iter_warmup=num_warmup,
+                        adapt_delta=0.95, max_treedepth=20)
         fit.diagnose()
         inf = az.from_cmdstanpy(fit, posterior_predictive='y_predict',
                                 log_likelihood='log_lhood')
