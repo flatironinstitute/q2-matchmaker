@@ -53,7 +53,7 @@ class TestMatching(unittest.TestCase):
                        'cool_1', 'cool_1',
                        'cool_2', 'cool_2',
                        'cool_3', 'cool_3'],
-p                      index=self.index, name='matching_id')
+                      index=self.index, name='matching_id')
         )
 
     @unittest.skip('qiime2 not supported yet.')
@@ -117,8 +117,8 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
         res = negative_binomial_case_control(
             biom_table,
             matchings, diffs,
-            monte_carlo_samples = 100,
-            treatment_group = '0')
+            monte_carlo_samples=100,
+            treatment_group='0')
         self.assertIsInstance(samples, az.InferenceData)
 
 

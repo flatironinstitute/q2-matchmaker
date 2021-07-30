@@ -1,5 +1,5 @@
  data {
-  int<lower=0> C;             // number of controls
+1  int<lower=0> C;             // number of controls
   int<lower=0> N;             // number of samples (2 * C)
   real depth[N];              // log sequencing depths of microbes
   int y[N];                   // observed microbe abundances
@@ -13,7 +13,6 @@
 }
 
 parameters {
-  vector[C] control;          // Mean of the control samples
   real diff;                  // Difference between case and control
   real mu;                    // mean prior for diff
   real<lower=0> disp[2];      // per microbe dispersion for both case-controls
@@ -41,8 +40,8 @@ model {
   disp ~ lognormal(log(10), disp_scale);
   diff ~ normal(0, diff_scale);
   // vague normal prior for controls
-  control_z ~ std_normal()
-  control_c ~ std_normal()
+  control_z ~ std_normal();
+  control_c ~ std_normal();
   control_sigma ~ lognormal(0, control_scale);
 
   // generating counts

@@ -88,15 +88,15 @@ def _case_control_full(counts: np.array,
         return sm, posterior
 
 
-def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
-                         case_member : np.array,
-                         depth : int,
-                         diff_scale : float=5,
-                         disp_scale : float=1,
-                         control_loc : float=0,
-                         control_scale : float=5,
-                         mc_samples : int=1000,
-                         chains : int=1) -> (CmdStanModel, CmdStanMCMC):
+def _case_control_single(counts: np.array, case_ctrl_ids: np.array,
+                         case_member: np.array,
+                         depth: int,
+                         diff_scale: float = 5,
+                         disp_scale: float = 1,
+                         control_loc: float = 0,
+                         control_scale: float = 5,
+                         mc_samples: int = 1000,
+                         chains: int = 1) -> (CmdStanModel, CmdStanMCMC):
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
@@ -106,12 +106,12 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
                         'assets/nb_case_control_single.stan')
     sm = CmdStanModel(stan_file=code)
     dat = {
-        'N' : len(counts),
-        'C' : int(max(case_ids) + 1),
-        'depth' : list(np.log(depth)),
-        'y' : list(map(int, counts.astype(np.int64))),
-        'cc_bool' : list(map(int, case_member)),
-        'cc_ids' : list(map(int, case_ids + 1)),
+        'N': len(counts),
+        'C': int(max(case_ids) + 1),
+        'depth': list(np.log(depth)),
+        'y': list(map(int, counts.astype(np.int64))),
+        'cc_bool': list(map(int, case_member)),
+        'cc_ids': list(map(int, case_ids + 1)),
         'diff_scale': diff_scale,
         'disp_scale': disp_scale,
         'control_loc': control_loc,
@@ -132,9 +132,9 @@ def _case_control_single(counts : np.array, case_ctrl_ids : np.array,
         return inf
 
 
-def _case_control_data(counts : np.array, case_ctrl_ids : np.array,
-                       case_member : np.array,
-                       depth : int = None):
+def _case_control_data(counts: np.array, case_ctrl_ids: np.array,
+                       case_member: np.array,
+                       depth: int = None):
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
