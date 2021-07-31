@@ -96,6 +96,7 @@ if __name__ == '__main__':
                 int_dir = args.intermediate_directory
                 out_fname = f'{int_dir}/{feature_id}.nc'
                 if os.path.exists(out_fname) and not args.overwrite:
+                    print(f'skipping {out_fname}')
                     continue
                 cmd_ = (
                     'case_control_single.py '
