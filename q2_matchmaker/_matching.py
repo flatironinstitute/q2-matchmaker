@@ -1,7 +1,6 @@
 from scipy.spatial.distance import pdist, squareform
 from scipy.optimize import linear_sum_assignment
 import pandas as pd
-import numpy as np
 
 
 def _standardize(x):
@@ -42,4 +41,4 @@ def _matchmaker(metadata, status, match_columns, types):
     y = y + i
     md.loc[md.index[x], 'matching_id'] = x
     md.loc[md.index[y], 'matching_id'] = x
-    return md['matching_id'].astype(np.int64)
+    return md['matching_id']
