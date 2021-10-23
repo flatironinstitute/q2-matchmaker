@@ -26,8 +26,11 @@ transformed parameters {
   vector[C] log_control = log_inv_logit(control);
 
   for (n in 1:N) {
-    lam[n] = log_control[cc_ids[n]];
-    if (cc_bool[n]) lam[n] += diff;
+
+    if (cc_bool[n])
+        lam[n] = log_inv_logit(depth[n] + log_control[cc_ids[n]] + diff);
+    else
+        lam[n] = log_inv_logit(depth[n] + log_control[cc_ids[n]]);
     phi[n] = inv(disp[cc_bool[n] + 1]);
   }
 }
