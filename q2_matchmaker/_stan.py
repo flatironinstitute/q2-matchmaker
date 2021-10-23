@@ -96,7 +96,7 @@ def _case_control_single(counts: np.array, case_ctrl_ids: np.array,
                          control_loc: float = 0,
                          control_scale: float = 5,
                          mc_samples: int = 1000,
-                         num_warmup : int = 2000,
+                         num_warmup: int = 2000,
                          chains: int = 1) -> (CmdStanModel, CmdStanMCMC):
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
@@ -138,12 +138,12 @@ def _case_control_data(counts: np.array, case_ctrl_ids: np.array,
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
     dat = {
-        'N' : counts.shape[0],
-        'D' : counts.shape[1],
-        'C' : int(max(case_ids) + 1),
-        'y' : counts.astype(int).tolist(),
-        'cc_bool' : list(map(int, case_member)),
-        'cc_ids' : list(map(int, case_ids + 1))
+        'N': counts.shape[0],
+        'D': counts.shape[1],
+        'C': int(max(case_ids) + 1),
+        'y': counts.astype(int).tolist(),
+        'cc_bool': list(map(int, case_member)),
+        'cc_ids': list(map(int, case_ids + 1))
     }
     if depth is not None:
         dat['depth'] = list(np.log(depth))

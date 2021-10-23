@@ -36,7 +36,7 @@ def _matchmaker(metadata, status, match_columns, types):
             df = pd.DataFrame(_standardize(md[col]))
             dummies.append(df)
     dm = sum(map(lambda x: squareform(pdist(x)) ** 2, dummies))
-    i = (md[status] == md[status][0]).values.sum()
+    i = (md[status].values == md[status].values[0]).sum()
     x, y = linear_sum_assignment(dm[:i, i:])
     y = y + i
     md.loc[md.index[x], 'matching_id'] = x

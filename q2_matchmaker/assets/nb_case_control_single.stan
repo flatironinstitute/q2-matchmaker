@@ -14,7 +14,6 @@
 
 parameters {
   real diff;                  // Difference between case and control
-  real mu;                    // mean prior for diff
   real<lower=0> disp[2];      // per microbe dispersion for both case-controls
   real<offset=control_loc, multiplier=3> control_mu;
   real control_sigma;
@@ -27,8 +26,11 @@ transformed parameters {
   vector[C] log_control = log_inv_logit(control);
 
   for (n in 1:N) {
-    lam[n] = log_control[cc_ids[n]];
-    if (cc_bool[n]) lam[n] += diff;
+
+    if (cc_bool[n])
+        lam[n] = log_inv_logit(depth[n] + log_control[cc_ids[n]] + diff);
+    else
+        lam[n] = log_inv_logit(depth[n] + log_control[cc_ids[n]]);
     phi[n] = inv(disp[cc_bool[n] + 1]);
   }
 }
