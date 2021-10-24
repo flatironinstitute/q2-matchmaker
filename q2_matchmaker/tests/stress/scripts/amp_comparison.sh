@@ -11,13 +11,14 @@ BIOM_Z=zurita.biom
 BIOM_D=dan.biom
 BIOM_B=berding.biom
 MD=sample_metadata.txt
-
+TMP=~/ceph/scratch/q2-matchmaker
 
 # clean up
 rm differentials_z.nc
 rm differentials_d.nc
 rm differentials_b.nc
 
+mkdir $TMP/intermediate_test_z
 case_control_disbatch.py \
     --biom-table $BIOM_Z \
     --metadata-file sample_metadata.txt \
@@ -25,25 +26,27 @@ case_control_disbatch.py \
     --groups Status \
     --treatment-group 'ASD' \
     --monte-carlo-samples 100 \
-    --intermediate-directory /tmp/intermediate_test_z \
+    --intermediate-directory $TMP/intermediate_test_z \
     --output-inference differentials_z.nc
 
-# case_control_disbatch.py \
-#     --biom-table $BIOM_D \
-#     --metadata-file sample_metadata.txt \
-#     --matching-ids Match_IDs \
-#     --groups Status \
-#     --treatment-group 'ASD' \
-#     --monte-carlo-samples 100 \
-#     --intermediate-directory /tmp/intermediate_test_d \
-#     --output-inference differentials_d.nc
-#
-# case_control_disbatch.py \
-#     --biom-table $BIOM_B \
-#     --metadata-file sample_metadata.txt \
-#     --matching-ids Match_IDs \
-#     --groups Status \
-#     --treatment-group 'ASD' \
-#     --monte-carlo-samples 100 \
-#     --intermediate-directory /tmp/intermediate_test_b \
-#     --output-inference differentials_b.nc
+mkdir $TMP/intermediate_test_d
+case_control_disbatch.py \
+    --biom-table $BIOM_D \
+    --metadata-file sample_metadata.txt \
+    --matching-ids Match_IDs \
+    --groups Status \
+    --treatment-group 'ASD' \
+    --monte-carlo-samples 100 \
+    --intermediate-directory $TMP/intermediate_test_d \
+    --output-inference differentials_d.nc
+
+mkdir $TMP/intermediate_test_b
+case_control_disbatch.py \
+    --biom-table $BIOM_B \
+    --metadata-file sample_metadata.txt \
+    --matching-ids Match_IDs \
+    --groups Status \
+    --treatment-group 'ASD' \
+    --monte-carlo-samples 100 \
+    --intermediate-directory $TMP/intermediate_test_b \
+    --output-inference differentials_b.nc
