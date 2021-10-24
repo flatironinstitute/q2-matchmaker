@@ -29,7 +29,7 @@ if __name__ == '__main__':
         type=float, required=False, default=5)
     parser.add_argument(
         '--disp-scale', help='Scale of dispersion.',
-        type=float, required=False, default=1)
+        type=float, required=False, default=0.1)
     parser.add_argument(
         '--control-loc', help='Center of control log proportions.',
         type=float, required=False, default=None)
@@ -131,9 +131,32 @@ if __name__ == '__main__':
             print("Output: \n{}\n".format(output))
 
     # Aggregate results
-    inference_files = [f'{args.intermediate_directory}/{feature_id}.nc'
-                       for feature_id in counts.columns]
-    inf_list = [az.from_netcdf(x) for x in inference_files]
+    inf_list = []
+    throw_err = False
+    for feature_id in counts.columns:
+        inference_file = f'{args.intermediate_directory}/{feature_id}.nc'
+        inf = az.from_netcdf(inference_file)
+        if hasattr(inf, 'sample_stats'):
+            inf_list.append(inf)
+        else:
+            os.remove(inference_file)
+            throw_err = True
+            print(inference_file, 'has no `sample_stats`, removing ...')
+        # delete useless variables
+        if hasattr(inf['posterior'], 'lam'):
+            del inf['posterior']['lam']
+        if hasattr(inf['posterior'], 'phi'):
+            del inf['posterior']['phi']
+        if hasattr(inf['posterior'], 'a1'):
+            del inf['posterior']['a1']
+        if hasattr(inf['posterior'], 'control'):
+            del inf['posterior']['control']
+
+    if throw_err:
+        raise ValueError('Inference files have no `sample_stats`. '
+                         'Those files have been removed, so please rerun with '
+                         '`--no-overwrite`')
+
     coords = {'features': counts.columns,
               'samples': counts.index,
               'monte_carlo_samples': np.arange(args.monte_carlo_samples)}

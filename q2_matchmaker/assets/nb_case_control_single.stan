@@ -18,26 +18,26 @@ parameters {
   real<offset=control_loc, multiplier=3> control_mu;
   real control_sigma;
   vector<offset=control_mu, multiplier=control_sigma>[C] control;
+  real<lower=0> a1;
 }
 
 transformed parameters {
   vector[N] lam;
   vector[N] phi;
-  vector[C] log_control = log_inv_logit(control);
 
   for (n in 1:N) {
 
-    if (cc_bool[n])
-        lam[n] = log_inv_logit(depth[n] + log_control[cc_ids[n]] + diff);
-    else
-        lam[n] = log_inv_logit(depth[n] + log_control[cc_ids[n]]);
-    phi[n] = inv(disp[cc_bool[n] + 1]);
+    lam[n] = depth[n] + control[cc_ids[n]];
+    if (cc_bool[n]) lam[n] += diff;
+
+    phi[n] = exp(a1 - lam[n]) + disp[cc_bool[n] + 1];
   }
 }
 
 model {
   // setting priors ...
-  disp ~ lognormal(log(10), disp_scale);
+  a1 ~ lognormal(0, 1);
+  disp ~ lognormal(log(0.1), disp_scale);
   diff ~ normal(0, diff_scale);
   // vague normal prior for controls
   control_mu ~ normal(control_loc, 3);
