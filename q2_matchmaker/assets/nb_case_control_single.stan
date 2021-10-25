@@ -3,7 +3,7 @@
   int<lower=0> N;             // number of samples (2 * C)
   real depth[N];              // log sequencing depths of microbes
   int y[N];                   // observed microbe abundances
-  int cc_bool[N];             // case-control true/false
+  int cc_bool[N];             // case-control (true if case, false if control)
   int cc_ids[N];              // control ids
   // priors
   real diff_scale;
@@ -18,7 +18,7 @@ parameters {
   real<offset=control_loc, multiplier=3> control_mu;
   real control_sigma;
   vector<offset=control_mu, multiplier=control_sigma>[C] control;
-  real<lower=0> a1;
+  //real a1;
 }
 
 transformed parameters {
@@ -30,14 +30,16 @@ transformed parameters {
     lam[n] = depth[n] + control[cc_ids[n]];
     if (cc_bool[n]) lam[n] += diff;
 
-    phi[n] = exp(a1 - lam[n]) + disp[cc_bool[n] + 1];
+    //phi[n] = inv(exp(a1 - lam[n]) + disp[cc_bool[n] + 1]);
+    phi[n] = inv(disp[cc_bool[n] + 1]);
   }
 }
 
 model {
   // setting priors ...
-  a1 ~ lognormal(0, 1);
-  disp ~ lognormal(log(0.1), disp_scale);
+  //a1 ~ normal(0, 1);
+  //disp ~ lognormal(log(0.1), disp_scale);
+  disp ~ lognormal(log(10), disp_scale);
   diff ~ normal(0, diff_scale);
   // vague normal prior for controls
   control_mu ~ normal(control_loc, 3);
