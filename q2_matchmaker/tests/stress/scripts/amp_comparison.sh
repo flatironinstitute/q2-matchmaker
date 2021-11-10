@@ -18,33 +18,39 @@ rm differentials_z.nc
 rm differentials_d.nc
 rm differentials_b.nc
 
+rm -r $TMP/intermediate_test_z
 mkdir $TMP/intermediate_test_z
 case_control_disbatch.py \
     --biom-table $BIOM_Z \
     --metadata-file sample_metadata.txt \
     --matching-ids Match_IDs \
+    --batch-ids Cohort \
     --groups Status \
     --treatment-group 'ASD' \
     --monte-carlo-samples 100 \
     --intermediate-directory $TMP/intermediate_test_z \
     --output-inference differentials_z.nc
 
+rm -r $TMP/intermediate_test_d
 mkdir $TMP/intermediate_test_d
 case_control_disbatch.py \
     --biom-table $BIOM_D \
     --metadata-file sample_metadata.txt \
     --matching-ids Match_IDs \
+    --batch-ids Cohort \
     --groups Status \
     --treatment-group 'ASD' \
     --monte-carlo-samples 100 \
     --intermediate-directory $TMP/intermediate_test_d \
     --output-inference differentials_d.nc
 
+rm -r $TMP/intermediate_test_b
 mkdir $TMP/intermediate_test_b
 case_control_disbatch.py \
     --biom-table $BIOM_B \
     --metadata-file sample_metadata.txt \
     --matching-ids Match_IDs \
+    --batch-ids Cohort \
     --groups Status \
     --treatment-group 'ASD' \
     --monte-carlo-samples 100 \
