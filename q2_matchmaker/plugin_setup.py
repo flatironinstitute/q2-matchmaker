@@ -1,6 +1,6 @@
 import qiime2.plugin
 import qiime2.sdk
-from qiime2.plugin import (Str, Int, List, Float,
+from qiime2.plugin import (Str, Int, List,
                            MetadataColumn, Categorical)
 from q2_matchmaker import __version__
 

@@ -2,14 +2,12 @@ import unittest
 import qiime2
 from q2_matchmaker._method import (
     negative_binomial_case_control,
-    normal_case_control,
     matching)
 from q2_matchmaker._stan import _case_control_sim
 
 import biom
 import numpy as np
 import pandas as pd
-import arviz as az
 import pandas.util.testing as pdt
 
 
@@ -114,12 +112,11 @@ class TestNegativeBinomialCaseControl(unittest.TestCase):
             pd.Series(list(map(str, self.metadata['diff'])),
                       index=pd.Index(sids, name='id'),
                       name='n'))
-        res = negative_binomial_case_control(
+        negative_binomial_case_control(
             biom_table,
             matchings, diffs,
             monte_carlo_samples=100,
             treatment_group='0')
-        self.assertIsInstance(samples, az.InferenceData)
 
 
 if __name__ == '__main__':
