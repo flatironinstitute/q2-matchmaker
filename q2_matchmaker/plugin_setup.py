@@ -1,13 +1,12 @@
 import qiime2.plugin
 import qiime2.sdk
-from qiime2.plugin import (Str, Int, List, Float,
+from qiime2.plugin import (Str, Int, List,
                            MetadataColumn, Categorical)
 from q2_matchmaker import __version__
 
 from q2_matchmaker._type import Matching
 from q2_matchmaker._method import (
     negative_binomial_case_control,
-    normal_case_control,
     matching
 )
 from q2_types.feature_table import FeatureTable, Frequency

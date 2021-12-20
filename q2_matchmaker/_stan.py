@@ -84,23 +84,29 @@ def _case_control_full(counts: np.array,
                               inits={'control': init_ctrl},
                               seed=seed, adapt_delta=0.95,
                               max_treedepth=20)
-        posterior.diagnose()
         return sm, posterior
 
 
-def _case_control_single(counts: np.array, case_ctrl_ids: np.array,
+def _case_control_single(counts: np.array,
+                         case_ctrl_ids: np.array,
                          case_member: np.array,
+                         batch_ids: np.array,
                          depth: int,
                          diff_scale: float = 5,
                          disp_scale: float = 1,
                          control_loc: float = 0,
                          control_scale: float = 5,
+                         batch_scale: float = 3,
                          mc_samples: int = 1000,
-                         num_warmup : int = 2000,
+                         num_warmup: int = 2000,
                          chains: int = 1) -> (CmdStanModel, CmdStanMCMC):
     case_encoder = LabelEncoder()
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
+
+    batch_encoder = LabelEncoder()
+    batch_encoder.fit(batch_ids)
+    batch_ids = batch_encoder.transform(batch_ids)
 
     # Actual stan modeling
     code = os.path.join(os.path.dirname(__file__),
@@ -109,12 +115,15 @@ def _case_control_single(counts: np.array, case_ctrl_ids: np.array,
     dat = {
         'N': len(counts),
         'C': int(max(case_ids) + 1),
+        'B': int(max(batch_ids) + 1),
         'depth': list(np.log(depth)),
         'y': list(map(int, counts.astype(np.int64))),
         'cc_bool': list(map(int, case_member)),
         'cc_ids': list(map(int, case_ids + 1)),
+        'batch_ids': list(map(int, batch_ids + 1)),
         'diff_scale': diff_scale,
         'disp_scale': disp_scale,
+        'batch_scale': batch_scale,
         'control_loc': control_loc,
         'control_scale': control_scale,
     }
@@ -125,9 +134,12 @@ def _case_control_single(counts: np.array, case_ctrl_ids: np.array,
         fit = sm.sample(data=data_path, iter_sampling=mc_samples,
                         chains=chains, iter_warmup=num_warmup,
                         adapt_delta=0.95, max_treedepth=20)
-        fit.diagnose()
         inf = az.from_cmdstanpy(fit, posterior_predictive='y_predict',
                                 log_likelihood='log_lhood')
+        # delete useless variables
+        del inf['posterior']['lam']
+        del inf['posterior']['phi']
+        del inf['posterior']['control']
         return inf
 
 
@@ -138,12 +150,12 @@ def _case_control_data(counts: np.array, case_ctrl_ids: np.array,
     case_encoder.fit(case_ctrl_ids)
     case_ids = case_encoder.transform(case_ctrl_ids)
     dat = {
-        'N' : counts.shape[0],
-        'D' : counts.shape[1],
-        'C' : int(max(case_ids) + 1),
-        'y' : counts.astype(int).tolist(),
-        'cc_bool' : list(map(int, case_member)),
-        'cc_ids' : list(map(int, case_ids + 1))
+        'N': counts.shape[0],
+        'D': counts.shape[1],
+        'C': int(max(case_ids) + 1),
+        'y': counts.astype(int).tolist(),
+        'cc_bool': list(map(int, case_member)),
+        'cc_ids': list(map(int, case_ids + 1))
     }
     if depth is not None:
         dat['depth'] = list(np.log(depth))

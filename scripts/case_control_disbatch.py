@@ -22,14 +22,19 @@ if __name__ == '__main__':
                           '(i.e. treatment vs control groups).'),
         required=True)
     parser.add_argument(
-        '--treatment-group', help='The name of the treatment group.',
+        '--treatment-group', help='The name of the control group.',
         required=True)
+    parser.add_argument(
+        '--batch-ids', help='Column specifying batch_ids.', required=False)
     parser.add_argument(
         '--diff-scale', help='Scale of differentials.',
         type=float, required=False, default=5)
     parser.add_argument(
         '--disp-scale', help='Scale of dispersion.',
-        type=float, required=False, default=1)
+        type=float, required=False, default=0.1)
+    parser.add_argument(
+        '--batch-scale', help='Scale of batch effects.',
+        type=float, required=False, default=0.1)
     parser.add_argument(
         '--control-loc', help='Center of control log proportions.',
         type=float, required=False, default=None)
@@ -96,17 +101,24 @@ if __name__ == '__main__':
                 int_dir = args.intermediate_directory
                 out_fname = f'{int_dir}/{feature_id}.nc'
                 if os.path.exists(out_fname) and not args.overwrite:
+                    print(f'skipping {out_fname}')
                     continue
+                if args.batch_ids is None:
+                    batch_ids = 'None'
+                else:
+                    batch_ids = args.batch_ids
                 cmd_ = (
                     'case_control_single.py '
                     f'--biom-table {args.biom_table} '
                     f'--metadata-file {args.metadata_file} '
                     f'--matching-ids {args.matching_ids} '
+                    f'--batch-ids {batch_ids} '
                     f'--groups {args.groups} '
                     f'--treatment-group {args.treatment_group} '
                     f'--feature-id {feature_id} '
                     f'--diff-scale {args.diff_scale} '
                     f'--disp-scale {args.disp_scale} '
+                    f'--batch-scale {args.batch_scale} '
                     f'--control-loc {control_loc} '
                     f'--control-scale {args.control_scale} '
                     f'--monte-carlo-samples {args.monte_carlo_samples} '
@@ -130,9 +142,32 @@ if __name__ == '__main__':
             print("Output: \n{}\n".format(output))
 
     # Aggregate results
-    inference_files = [f'{args.intermediate_directory}/{feature_id}.nc'
-                       for feature_id in counts.columns]
-    inf_list = [az.from_netcdf(x) for x in inference_files]
+    inf_list = []
+    throw_err = False
+    for feature_id in counts.columns:
+        inference_file = f'{args.intermediate_directory}/{feature_id}.nc'
+        inf = az.from_netcdf(inference_file)
+        if hasattr(inf, 'sample_stats'):
+            inf_list.append(inf)
+        else:
+            os.remove(inference_file)
+            throw_err = True
+            print(inference_file, 'has no `sample_stats`, removing ...')
+        # delete useless variables
+        if hasattr(inf['posterior'], 'lam'):
+            del inf['posterior']['lam']
+        if hasattr(inf['posterior'], 'phi'):
+            del inf['posterior']['phi']
+        if hasattr(inf['posterior'], 'a1'):
+            del inf['posterior']['a1']
+        if hasattr(inf['posterior'], 'control'):
+            del inf['posterior']['control']
+
+    if throw_err:
+        raise ValueError('Inference files have no `sample_stats`. '
+                         'Those files have been removed, so please rerun with '
+                         '`--no-overwrite`')
+
     coords = {'features': counts.columns,
               'samples': counts.index,
               'monte_carlo_samples': np.arange(args.monte_carlo_samples)}

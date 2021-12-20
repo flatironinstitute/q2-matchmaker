@@ -21,13 +21,18 @@ if __name__ == '__main__':
         '--treatment-group', help='The name of the control group.',
         required=True)
     parser.add_argument(
+        '--batch-ids', help='Column specifying batch_ids.', required=False)
+    parser.add_argument(
         '--feature-id', help='Feature to analyze.', type=str, required=True)
     parser.add_argument(
         '--diff-scale', help='Scale of differentials.',
-        type=float, required=False, default=10)
+        type=float, required=False, default=5)
     parser.add_argument(
         '--disp-scale', help='Scale of dispersion.',
-        type=float, required=False, default=1)
+        type=float, required=False, default=0.1)
+    parser.add_argument(
+        '--batch-scale', help='Scale of batch effects.',
+        type=float, required=False, default=0.1)
     parser.add_argument(
         '--control-loc', help='Center of control log proportions.',
         type=float, required=False, default=None)
@@ -53,11 +58,16 @@ if __name__ == '__main__':
     metadata = metadata.set_index(metadata.columns[0])
     matching_ids = metadata[args.matching_ids]
     groups = metadata[args.groups]
+    if args.batch_ids is None or args.batch_ids == 'None':
+        batch_ids = pd.Series(np.zeros(len(metadata)), index=metadata.index)
+    else:
+        batch_ids = metadata[args.batch_ids]
+
     # match everything up
-    idx = list(set(counts.index) & set(matching_ids.index) & set(groups.index))
-    counts, matching_ids, groups = [x.loc[idx] for x in
-                                    (counts, matching_ids, groups)]
-    matching_ids, groups = matching_ids.values, groups.values
+    idx = list(set(counts.index) & set(metadata.index))
+    varz = (matching_ids, groups, batch_ids)
+    matching_ids, groups, batch_ids = [x.loc[idx].values for x in varz]
+    counts = counts.loc[idx]
     groups = (groups == args.treatment_group).astype(np.int64)
     depth = counts.sum(axis=1)
     if len(counts) == 0 or len(groups) == 0:
@@ -72,7 +82,7 @@ if __name__ == '__main__':
     x = counts[args.feature_id]
 
     samples = _case_control_single(
-        x, matching_ids, groups,
+        x, matching_ids, groups, batch_ids,
         depth=depth,
         mc_samples=args.monte_carlo_samples,
         chains=args.chains,

@@ -24,8 +24,20 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # A little redundant, but necessary for getting ids
     table = load_table(args.biom_table)
+    inf_list = []
+    for x in args.inference_files:
+        inf = az.from_netcdf(x)
+        # delete useless variables
+        if hasattr(inf['posterior'], 'lam'):
+            del inf['posterior']['lam']
+        if hasattr(inf['posterior'], 'phi'):
+            del inf['posterior']['phi']
+        if hasattr(inf['posterior'], 'a1'):
+            del inf['posterior']['a1']
+        if hasattr(inf['posterior'], 'control'):
+            del inf['posterior']['control']
+        inf_list.append(inf)
 
-    inf_list = [az.from_netcdf(x) for x in args.inference_files]
     coords = {'features': table.ids(axis='observation'),
               'monte_carlo_samples': np.arange(args.monte_carlo_samples)}
     samples = merge_inferences(inf_list, 'y_predict', 'log_lhood', coords)

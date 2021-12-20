@@ -1,0 +1,2 @@
+rm slurm*
+rm tasks*

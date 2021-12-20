@@ -61,8 +61,9 @@ class TestCaseControlSingle(unittest.TestCase):
                 self.table.values[:, i],
                 case_ctrl_ids=self.metadata['reps'].values,
                 case_member=self.metadata['diff'].values,
+                batch_ids=np.ones(len(self.metadata)),
                 depth=self.table.sum(axis=1),
-                mc_samples=500)
+                mc_samples=20)
             # rm = res['posterior']['diff'].mean()
             # rs = res['posterior']['diff'].std()
             # self.assertTrue((rm - 2 * rs) <= self.diff[i])
