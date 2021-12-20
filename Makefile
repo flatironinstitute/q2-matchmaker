@@ -13,4 +13,4 @@ pep8:
 	pycodestyle q2_matchmaker setup.py --ignore=E731,E722,W503
 	flake8 q2_matchmaker setup.py scripts  --ignore=E731,E722,W503
 
-all: test pep8
+all: pep8 test
