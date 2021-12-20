@@ -84,7 +84,6 @@ def _case_control_full(counts: np.array,
                               inits={'control': init_ctrl},
                               seed=seed, adapt_delta=0.95,
                               max_treedepth=20)
-        #posterior.diagnose()
         return sm, posterior
 
 
@@ -135,7 +134,6 @@ def _case_control_single(counts: np.array,
         fit = sm.sample(data=data_path, iter_sampling=mc_samples,
                         chains=chains, iter_warmup=num_warmup,
                         adapt_delta=0.95, max_treedepth=20)
-        #fit.diagnose()
         inf = az.from_cmdstanpy(fit, posterior_predictive='y_predict',
                                 log_likelihood='log_lhood')
         # delete useless variables
