@@ -1,7 +1,6 @@
 from scipy.stats import f as f_distrib
 from scipy.stats import ttest_1samp
 from scipy.spatial.distance import cdist, euclidean
-import hdmedians as hd
 import pandas as pd
 import numpy as np
 
@@ -69,10 +68,7 @@ def spherical_test(X: np.array, p=0.95, center=True, median=False, radius=False)
     else:
         X_ = X
 
-    if median:
-        muX = hd.medoid(axis=0).reshape(-1, 1)
-    else:
-        muX = X_.mean(axis=0).reshape(1, -1)
+    muX = X_.mean(axis=0).reshape(1, -1)
 
     dists = cdist(X_, muX)
     r = np.percentile(dists, p)   # radius of sphere
