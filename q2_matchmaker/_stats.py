@@ -1,6 +1,7 @@
 from scipy.stats import f as f_distrib
 from scipy.stats import ttest_1samp
 from scipy.spatial.distance import cdist, euclidean
+import hdmedians as hd
 import pandas as pd
 import numpy as np
 
@@ -43,7 +44,7 @@ def hotelling_ttest(X: np.array, to_alr=False):
     return t2, pval
 
 
-def spherical_test(X: np.array, p=0.95, center=True):
+def spherical_test(X: np.array, p=0.95, center=True, median=False, radius=False):
 
     """ Fits a sphere that contains all of the points in X
     and tests to see if 0 is inside of that sphere.
@@ -52,6 +53,12 @@ def spherical_test(X: np.array, p=0.95, center=True):
     ----------
     X : np.array
        Rows are posterior draws, columns are features,
+    p : float
+       Confidence interval
+    center : bool
+       Recenter the data (i.e. CLR transform)
+    median : bool
+       Compute medoid. If false, then the mean is computed instead
 
     Returns
     -------
@@ -61,9 +68,14 @@ def spherical_test(X: np.array, p=0.95, center=True):
         X_ = X - X.mean(axis=1).reshape(-1, 1)
     else:
         X_ = X
-    muX = X_.mean(axis=0).reshape(1, -1)
+
+    if median:
+        muX = hd.medoid(axis=0).reshape(-1, 1)
+    else:
+        muX = X_.mean(axis=0).reshape(1, -1)
+
     dists = cdist(X_, muX)
-    r = np.percentile(dists, p) / 2  # radius of sphere
+    r = np.percentile(dists, p)   # radius of sphere
     p = np.zeros_like(muX)
     d = euclidean(muX, p)
     return d < r, r, d
