@@ -43,7 +43,7 @@ def hotelling_ttest(X: np.array, to_alr=False):
     return t2, pval
 
 
-def spherical_test(X: np.array, p=0.95, center=True, median=False, radius=False):
+def spherical_test(X: np.array, percentile=95, center=True, median=False, radius=False):
 
     """ Fits a sphere that contains all of the points in X
     and tests to see if 0 is inside of that sphere.
@@ -52,8 +52,8 @@ def spherical_test(X: np.array, p=0.95, center=True, median=False, radius=False)
     ----------
     X : np.array
        Rows are posterior draws, columns are features,
-    p : float
-       Confidence interval
+    percentile : float
+       Percentile specifying credible interval width (must be between 0 and 100)
     center : bool
        Recenter the data (i.e. CLR transform)
     median : bool
@@ -71,7 +71,7 @@ def spherical_test(X: np.array, p=0.95, center=True, median=False, radius=False)
     muX = X_.mean(axis=0).reshape(1, -1)
 
     dists = cdist(X_, muX)
-    r = np.percentile(dists, p)   # radius of sphere
+    r = np.percentile(dists, percentile)   # radius of sphere
     p = np.zeros_like(muX)
     d = euclidean(muX, p)
     return d < r, r, d
