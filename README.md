@@ -59,12 +59,67 @@ The option `--monte-carlo-samples` specifies the number of draws from the poster
 The option `--processes` specifies the number of parallel processes to be performed. It is important to note that the total number of processes to be launched is actually `processes x chains` (see the `--chains` option).  You can launch multiple parallel chains to help with debugging, but you should be careful NOT to launch more processes than what your computer has.  So if you have 40 cores on your computer and you specify 40 processes and 4 chains, you have 160 processes fightning for 40 cores.  Then you machine will thrash and take forever to complete.  Alternatively, you could launch 40 processes with 1 chain, and then you can process 40 microbes at a time (abet less capacity to perform diagnostics like Rhat).
 
 The option `--output-inference` specifies the output file location.  The output format is a netcdf file that can be opened using [Arviz](https://github.com/arviz-devs/arviz).
-This is a tensor format that stores all of the output results.  You can open one of theses with the following command
+This is a tensor format that stores all of the output results.  You can open one of these files and view its contents with the following command
 
 ```python
 import arviz as az
 inf = az.from_netcdf('differentials.nc')
+inf
 ```
+you may see the following output.
+```
+Inference data with groups:
+          > posterior
+          > posterior_predictive
+          > log_likelihood
+          > sample_stats
+```
+You will note that there are new fields, namely `posterior_predictive` and `log_likelihood`.  These new objects can aid with additional diagnostics such as Bayesian R2 or other out-of-distribution statistics.  For more, check out the [Stan documentation](https://mc-stan.org/users/documentation/).
+
+This object is also better labeled, the feature names and sample names are all intact.  Specifically, investigating `inf.posterior` will yield
+```
+Dimensions:        (chain: 4, control_dim_0: 50, disp_dim_0: 2, draw: 1000, features: 10, samples: 100)
+Coordinates:
+  * chain          (chain) int64 0 1 2 3
+  * draw           (draw) int64 0 1 2 3 4 5 6 7 ... 993 994 995 996 997 998 999
+  * control_dim_0  (control_dim_0) int64 0 1 2 3 4 5 6 ... 43 44 45 46 47 48 49
+  * disp_dim_0     (disp_dim_0) int64 0 1
+  * features       (features) object 'o0' 'o1' 'o2' 'o3' ... 'o6' 'o7' 'o8' 'o9'
+  * samples        (samples) object 's75' 's98' 's22' ... 's48' 's69' 's54'
+Data variables:
+    control        (features, chain, draw, control_dim_0) float64 ...
+    diff           (features, chain, draw) float64 ...
+    mu             (features, chain, draw) float64 ...
+    sigma          (features, chain, draw) float64 ...
+    disp           (features, chain, draw, disp_dim_0) float64 ...
+Attributes:
+    created_at:                 2021-06-16T04:40:37.233277
+    arviz_version:              0.11.2
+    inference_library:          cmdstanpy
+    inference_library_version:  0.9.68
+
+```
+
+The variable that is most likely of interest is `diff` which specifies the computed log-fold changes.  You can pull format this into a readable format via
+```python
+diffs = inf['posterior']['diff'].to_dataframe().reset_index().pivot(
+        index='features', columns=['chain', 'draw'], values='diff')
+```
+This will give you a pandas dataframe, where the rows are microbes and the columns are posterior samples.
+From this, you can compute posterior statistics such as per-microbe credible intervals via
+
+```python
+import numpy as np
+lo = np.percentile(diffs, q=5, axis=1)  # gives the 5% credible interval
+hi = np.percentile(diffs, q=95, axis=1) # gives the 95% credible interval
+```
+We can also test to see if the differential itself is statistically significant (like PERMANOVA in beta diversity).
+```python
+from q2_matchmaker.stats import spherical_test
+reject, radius, zero_dist = spherical_test(diffs.values)
+```
+The idea here is that we fit a sphere around the posterior distribution of differentials (why? It's because convex hulls in higher dimensions is NP-hard).
+Once we have a sphere, we test to see if zero is contained in the sphere.  If it is, we reject model, and acknowledge that there could no statistical significance (i.e. none of the microbes had a statistically significant difference).  If `reject` is False, then at least 1 microbe is significantly different -- but we can't say for sure which one due to the compositional bias.  This is where the strength of differential ranking is important, ranking the log-fold changes in `diff` to prioritize the likely candidate microbes that have changed in abundance.
 
 It can be a bit overwhelming to analyze for those not familiar with Bayesian statistics, so make sure to check out to check out the analysis notebooks, particularly [this notebook](https://github.com/mortonjt/asd_multiomics_analyses/blob/main/ipynb/main-differential-notebook.ipynb)
 
@@ -121,46 +176,6 @@ sbatch -n 10 -c 4 --mem 8GB launch.sh
 Where it would be run using 10 processes, each allocated with 4 cores and 8GB per process. An example slurm script is also provided in the examples folder.
 You may see a ton of files being generated - these are diagnostics files primarily for debugging.  See the Other considerations sections.
 
-At this moment in time, the `case_control_disbatch.py` is better supported than the qiime2 command.  If you investigate the `differentials.nc`, you will notice a different
- layout, namely if you run
-```python
-import arviz as az
-inf = az.from_netcdf('differentials.nc')
-inf
-```
-you may see the following output.
-```
-Inference data with groups:
-          > posterior
-          > posterior_predictive
-          > log_likelihood
-          > sample_stats
-```
-You will note that there are new fields, namely `posterior_predictive` and `log_likelihood`.  These new objects can aid with additional diagnostics such as Bayesian R2 or other out-of-distribution statistics.  For more, check out the [Stan documentation](https://mc-stan.org/users/documentation/).
-
-This object is also better labeled, the feature names and sample names are all intact.  Specifically, investigating `inf.posterior` will yield
-```
-Dimensions:        (chain: 4, control_dim_0: 50, disp_dim_0: 2, draw: 1000, features: 10, samples: 100)
-Coordinates:
-  * chain          (chain) int64 0 1 2 3
-  * draw           (draw) int64 0 1 2 3 4 5 6 7 ... 993 994 995 996 997 998 999
-  * control_dim_0  (control_dim_0) int64 0 1 2 3 4 5 6 ... 43 44 45 46 47 48 49
-  * disp_dim_0     (disp_dim_0) int64 0 1
-  * features       (features) object 'o0' 'o1' 'o2' 'o3' ... 'o6' 'o7' 'o8' 'o9'
-  * samples        (samples) object 's75' 's98' 's22' ... 's48' 's69' 's54'
-Data variables:
-    control        (features, chain, draw, control_dim_0) float64 ...
-    diff           (features, chain, draw) float64 ...
-    mu             (features, chain, draw) float64 ...
-    sigma          (features, chain, draw) float64 ...
-    disp           (features, chain, draw, disp_dim_0) float64 ...
-Attributes:
-    created_at:                 2021-06-16T04:40:37.233277
-    arviz_version:              0.11.2
-    inference_library:          cmdstanpy
-    inference_library_version:  0.9.68
-
-```
 ## Other considerations
 
 It is important to note that the computing resources need to be carefully allocated depending on the dataset.  In addition, large datasets with thousands of microbes will generate thousands of microbes, which will put stress on a networked file system.  Therefore, it is important to specify the `--local-directory` to save intermediate files to node local storage, which is much faster to access than the networked file system.  Every system is different, your favorite systems admin will know the location of the node local storage.
