@@ -24,7 +24,7 @@ description = ('QIIME2 plugin for Case-Control '
 
 
 setup(name='q2-matchmaker',
-      version='0.1.0',
+      version='1.0.0',
       license='BSD-3-Clause',
       description=description,
       author_email="jamietmorton@gmail.com",
