@@ -1,13 +1,12 @@
 # q2-matchmaker
 A software package for case-control differential abundance analysis
 
-I want to stress that this software package is not going to be user friendly -- running this software requires 100s of cores, in addition to a very involved downstream analysis.
+I want to stress that this software package is research software and may be challenging to run.  Running this software requires a super computing cluster with 100s of cores, in addition to a very involved downstream analysis.
 For examples on how the outputs can be processed, see the notebooks for the [ASD multiomics analysis](https://github.com/mortonjt/asd_multiomics_analyses).
 
-I also want to stress that this repository will also not be maintained -- but we have provided a conda environment with the exact version numbers to faciliate the installation.
-For future iterations that will focus on lowering the barriers of this Bayesian modeling strategy see [Birdman](https://github.com/gibsramen/BIRDMAn).
+All of the dependencies of this software package is frozen, meaning that we have provided a conda environment with the exact version numbers to faciliate the installation. For future iterations that will focus on lowering the barriers of this Bayesian modeling strategy see [Birdman](https://github.com/gibsramen/BIRDMAn).
 
-That being said, feel free to raise questions through the issue tracker and I will try my best to be responsive.
+Feel free to raise questions through the issue tracker and I will try my best to be responsive.
 
 # Installation (for Linux)
 
