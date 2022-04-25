@@ -1,7 +1,13 @@
 # q2-matchmaker
-A qiime2 plugin for case-control differential abundance analysis
+A software package for case-control differential abundance analysis
 
-I want to stress that this repository is highly experimental.  There are many holes in the source code and the  documentation is going to be patchy until version 1 is released. So feel free to use at your own risk.
+I want to stress that this software package is not going to be user friendly -- running this software requires 100s of cores, in addition to a very involved downstream analysis.
+For examples on how the outputs can be processed, see the notebooks for the [ASD multiomics analysis](https://github.com/mortonjt/asd_multiomics_analyses).
+
+I also want to stress that this repository will also not be maintained -- but we have provided a conda environment with the exact version numbers to faciliate the installation.
+For future iterations that will focus on lowering the barriers of this Bayesian modeling strategy see [Birdman](https://github.com/gibsramen/BIRDMAn).
+
+That being said, feel free to raise questions through the issue tracker and I will try my best to be responsive.
 
 # Installation (for Linux)
 
@@ -9,35 +15,84 @@ First install conda
 ```
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 ```
+Then install the q2_matchmaker dependencies through the following conda environment
 
-If you want to use the qiime2 version, go ahead and install the most up-to-date version. But use at your own risk, since this is still work in progress.
-
-Then install qiime2
 ```
-wget https://data.qiime2.org/distro/core/qiime2-2021.4-py36-linux-conda.yml
-conda env create -n qiime2-2021.4 --file qiime2-2021.4-py36-linux-conda.yml
-rm qiime2-2020.11-py36-linux-conda.yml
+conda create -f environment.yml
 ```
 
-There are a few additional dependencies that you will need to install, namely
+Then you'll need to install the `q2_matchmaker` package.  One way to do this is through pip via
+
 ```
-pip install https://github.com/mortonjt/q2-types.git
-pip install arviz
-pip install cmdstanpy
+pip install git+https://github.com/flatironinstitute/q2-matchmaker.git
 ```
 
-Finally, install this repository
+And voila!  You should be able to activate your environment via `conda activate q2_matchmaker` and access the basic command line utilities.
+
+
+# Basic Linux tutorial
+
+If you have access to a compute cluster that has nodes with >30 cores, then you can apply the the `case_control_parallel.py` workflow to your data!
+
+See the `examples` folder for some example datasets and scripts.  For instance, you try out the following command
+
 ```
-git clone https://github.com/flatironinstitute/q2-matchmaker.git
-cd q2-matchmaker
-source install.sh
-pip install -e .
-qiime dev refresh-cache   # this is optional.
+export TBB_CXX_TYPE=gcc
+case_control_parallel.py \
+    --biom-table table.biom \
+    --metadata-file sample_metadata.txt \
+    --matching-ids reps \
+    --groups diff \
+    --treatment-group 0 \
+    --monte-carlo-samples 100 \
+    --processes 40 \
+    --output-inference differentials.nc
 ```
 
-# SLURM Tutorial
+We can dissect this command.  The input counts (`table.biom`) are passed in as a [biom format](https://biom-format.org/), which is a sparse matrix representation of the microbial counts.
+The `sample_metadata.txt` contains the metadata associated with each biological sample.  There are a couple of important points here.  First, the `reps` column denotes the case-control matching ids -- each case-control pair is given a unique id.  Second, the `diff` column denotes the which subjects are allocated to case and control.  Here I put in zeros and ones, but it is ok to pass in categorical values (see the [ASD multiomics analysis](https://github.com/mortonjt/asd_multiomics_analyses) scripts for more examples).  If you don't know how to obtain your matching ids, don't worry, keep reading.
 
-If you really want apply this to typical microbiome datasets, chances are, you will need to use the SLURM interface. However, note that it will be considerably more difficult to use compared to the qiime2 interface, since it will require some cluster configuration. To use this, you will need to install [disBatch](https://github.com/flatironinstitute/disBatch). This can be installed via
+The option `--treatment-group` tells us the group of interest (i.e. which subjects correspond to the sick cohort, rather than the control cohort).  This is important for getting the directionality of the log-fold changes correct.
+
+The option `--monte-carlo-samples` specifies the number of draws from the posterior distribution will be obtained.  This is important for calculating Bayesian credible intervals, pvalues and effect sizes.  We found that 100 samples is more than enough, amounting to only shuffling around a few GBs.  One can do 1000+ samples, but we have found it to be too computationally expensive, since it will blow up memory in downstream steps and requires us to shuffle multiple TBs (not fun!).
+
+The option `--processes` specifies the number of parallel processes to be performed. It is important to note that the total number of processes to be launched is actually `processes x chains` (see the `--chains` option).  You can launch multiple parallel chains to help with debugging, but you should be careful NOT to launch more processes than what your computer has.  So if you have 40 cores on your computer and you specify 40 processes and 4 chains, you have 160 processes fightning for 40 cores.  Then you machine will thrash and take forever to complete.  Alternatively, you could launch 40 processes with 1 chain, and then you can process 40 microbes at a time (abet less capacity to perform diagnostics like Rhat).
+
+The option `--output-inference` specifies the output file location.  The output format is a netcdf file that can be opened using [Arviz](https://github.com/arviz-devs/arviz).
+This is a tensor format that stores all of the output results.  You can open one of theses with the following command
+
+```python
+import arviz as az
+inf = az.from_netcdf('differentials.nc')
+```
+
+It can be a bit overwhelming to analyze for those not familiar with Bayesian statistics, so make sure to check out to check out the analysis notebooks, particularly [this notebook](https://github.com/mortonjt/asd_multiomics_analyses/blob/main/ipynb/main-differential-notebook.ipynb)
+
+## Computing Matching IDs
+You may ask, how exactly does one obtain the matching ids?  Sometimes this is provided upfront (i.e. household matching).  Other times you need to compute this yourself.
+If you are in the later category, we have the [utility functions](https://github.com/flatironinstitute/q2-matchmaker/blob/main/q2_matchmaker/_matching.py#L10) just for you!  You can run the template for the following python script
+
+```python
+import pandas as pd
+md = pd.read_table("<your metadata.txt>", index_col=0)
+
+from q2_matchmaker._matching import _matchmaker
+
+status = 'status'                # specifies if a sample came from case or control (i.e. sick vs healthy)
+match_columns = ['Age', 'Sex']   # all of the confounders you'd like to control for
+match_types = [False, True]      # specifies if continuous (False) or categorical (True)
+match_ids = _matchmaker(md, status, match_columns, match_types)
+md['Match_IDs'] = match_ids
+md.to_csv("<your updated metadata.txt>", sep='\t')
+```
+Note that this is just a template for a python script -- you may massage your input data (i.e. drop NAs) before applying the matching.
+You also may need to drop NAs after the matching (i.e. if you have an even number of cases, and an odd number of controls, some body is not going to be matched).
+The [pandas dropna](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.dropna.html) will be particularly useful for this.
+
+
+# SLURM Tutorial (advanced)
+
+If you really want scale this to larger datasets (i.e. >10k features), chances are, you will need to use the SLURM interface. However, note that it will be considerably more difficult to use compared to the qiime2 interface, since it will require some cluster configuration. To use this, you will need to install [disBatch](https://github.com/flatironinstitute/disBatch). This can be installed via
 ```
 pip install git+https://github.com/flatironinstitute/disBatch.git
 ```
@@ -108,7 +163,7 @@ Attributes:
 ```
 ## Other considerations
 
-This command is very similar to the qiime2 command, but there are some very nuisanced differences, The resources need to be carefully allocated depending on the dataset.  In addition, large datasets with thousands of microbes will generate thousands of microbes, which will put stress on a networked file system.  Therefore, it is important to specify the `--local-directory` to save intermediate files to node local storage, which is much faster to access than the networked file system.  Every system is different, your favorite systems admin will know the location of the node local storage.
+It is important to note that the computing resources need to be carefully allocated depending on the dataset.  In addition, large datasets with thousands of microbes will generate thousands of microbes, which will put stress on a networked file system.  Therefore, it is important to specify the `--local-directory` to save intermediate files to node local storage, which is much faster to access than the networked file system.  Every system is different, your favorite systems admin will know the location of the node local storage.
 
 ## What to do when crap hits the fan?
 Persistence is never a guarantee with cluster systems, jobs will fail, in which you may need to relaunch jobs.  You may need to modify the `biom-table` to filter out ids that succeed (see [here](https://biom-format.org/documentation/generated/biom.table.Table.filter.html)). Now q2_matchmaker will store intermediate files for you -- if you didn't specify an intermediate folder, it would be stored until newly created folder called `intermediate`.  Once your relaunched jobs have completed, you can stitch together your individual runs using the `case_control_merge.py` command as follows
@@ -123,6 +178,38 @@ And wahla, you now have an arviz object that you can open in python via
 import arviz as az
 inf = az.from_netcdf('differentials.nc')
 ```
+
+
+# Experimental QIIME2 plugin
+
+We did attempt to implement a qiime2 plugin, but fully fleshing this out turned out to be a major software engineering challenge.
+The basic MCMC pipeline is available as a qiime2 plugin, but there are no downstream analyses that are currently implemented.
+
+If you still want to use the qiime2 version, go ahead and install the most up-to-date version.
+
+Then install qiime2
+```
+wget https://data.qiime2.org/distro/core/qiime2-2021.4-py36-linux-conda.yml
+conda env create -n qiime2-2021.4 --file qiime2-2021.4-py36-linux-conda.yml
+rm qiime2-2020.11-py36-linux-conda.yml
+```
+
+There are a few additional dependencies that you will need to install, namely
+```
+pip install https://github.com/mortonjt/q2-types.git
+pip install arviz
+pip install cmdstanpy
+```
+
+Finally, install this repository
+```
+git clone https://github.com/flatironinstitute/q2-matchmaker.git
+cd q2-matchmaker
+source install.sh
+pip install -e .
+qiime dev refresh-cache   # this is optional.
+```
+
 
 # qiime2 Tutorial (Work In Progress)
 
