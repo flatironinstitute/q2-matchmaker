@@ -78,17 +78,18 @@ if __name__ == '__main__':
     else:
         control_loc = args.control_loc
 
-    if args.batch_ids is None:
-        batch_ids = 'None'
+    if args.batch_ids is None or args.batch_ids == 'None':
+        batch_ids = pd.Series(np.zeros(len(metadata)), index=metadata.index)
     else:
-        batch_ids = args.batch_ids
+        batch_ids = metadata[args.batch_ids]
 
     # setup map / reduce
     feature_ids = list(counts.columns)
     samples = []
     def _single_func(x):
+        cnts = counts[x]
         return _case_control_single(
-            x, matching_ids, groups, batch_ids,
+            cnts, matching_ids, groups, batch_ids,
             depth=depth,
             mc_samples=args.monte_carlo_samples,
             chains=args.chains,
