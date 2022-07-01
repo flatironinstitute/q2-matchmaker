@@ -2,11 +2,12 @@
   int<lower=0> C;             // number of controls
   int<lower=0> N;             // number of samples (2 * C)
   int<lower=0> B;             // number of batches
+  int<lower=0> D;             // number of diseases (which *doesn't* include controls)
   real depth[N];              // log sequencing depths of microbes
   int y[N];                   // observed microbe abundances
-  int cc_bool[N];             // case-control (true if case, false if control)
   int cc_ids[N];              // control ids
   int batch_ids[N];           // batch ids
+  int disease_ids[N];         // disease ids
   // priors
   real diff_scale;
   real disp_scale;
@@ -16,26 +17,32 @@
 }
 
 parameters {
-  real diff;                   // Difference between case and control
-  real<lower=0> disp[2];       // per microbe dispersion for both case-controls
-  real batch_mu[B];            // per batch bias
-  real<lower=0> batch_disp[B]; // per batch dispersion
-  real<offset=control_loc, multiplier=3> control_mu;
-  real control_sigma;
-  vector<offset=control_mu, multiplier=control_sigma>[C] control;
-  real a1;
+  real diff[D];                 // Difference between each disease and control
+  real a0;                      // per microbe constant dispersion
+  real a1;                      // per microbe linear dispersion
+  
+  real<lower=0> disease_disp[D+1];    // per microbe quadratic dispersion for all diseases
+  real batch_mu[B];                   // per batch bias
+  real<lower=0> batch_disp[B];        // per batch dispersion
+  real<offset=control_loc, multiplier=3> control_mu;               // log control proportions (prior mean)
+  real control_sigma;                                              // log control proportions (prior std)
+  vector<offset=control_mu, multiplier=control_sigma>[C] control;  // log control proportions
+  
 }
 
 transformed parameters {
   vector[N] lam;
   vector[N] phi;
+  vector[N] alpha;
 
   for (n in 1:N) {
-
-    lam[n] = depth[n] + batch_mu[batch_ids[n]] + control[cc_ids[n]];
-    if (cc_bool[n]) lam[n] += diff;
-
-    phi[n] = inv(exp(a1 - lam[n]) + disp[cc_bool[n] + 1] + batch_disp[batch_ids[n]]);
+    real delta = 0;
+    if (disease_ids[n] > 0) // if not control
+        delta = diff[disease_ids[n]]
+    
+    lam[n] = depth[n] + control[cc_ids[n]] + delta + batch_mu[batch_ids[n]]
+  
+    phi[n] = inv(exp(a1 - lam[n]) + disease_disp[disease_id[n] + 1] + batch_disp[batch_ids[n]]);
     //phi[n] = inv(disp[cc_bool[n] + 1]);
   }
 }
