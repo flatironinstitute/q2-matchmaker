@@ -31,26 +31,26 @@ transformed parameters {
   vector[N] phi;
 
   for (n in 1:N) {
-
-    lam[n] = depth[n] + batch_mu[batch_ids[n]] + control[cc_ids[n]];
-    if (cc_bool[n]) lam[n] += diff;
-
+    real delta = 0;
+    if (cc_bool[n])
+        delta = diff;
+    lam[n] = depth[n] + log_inv_logit(batch_mu[batch_ids[n]] + control[cc_ids[n]] + delta);
     phi[n] = inv(exp(a1 - lam[n]) + disp[cc_bool[n] + 1] + batch_disp[batch_ids[n]]);
-    //phi[n] = inv(disp[cc_bool[n] + 1]);
+    // phi[n] = inv(disp[cc_bool[n] + 1]);
   }
 }
 
 model {
   // setting priors ...
   a1 ~ normal(1, 1);
-  disp ~ lognormal(log(0.1), disp_scale);
-  batch_mu ~ normal(0, 3);
-  batch_disp ~ lognormal(log(0.1), batch_scale);
-  //disp ~ lognormal(log(10), disp_scale);
+  disp ~ lognormal(0, 1);
+  batch_mu ~ normal(0, 1);
+  batch_disp ~ lognormal(log(0.1), 1);
+  // disp ~ lognormal(log(10), disp_scale);
   diff ~ normal(0, diff_scale);
   // vague normal prior for controls
   control_mu ~ normal(control_loc, 3);
-  control_sigma ~ lognormal(0, control_scale);
+  control_sigma ~ lognormal(0.5, 1);
   control ~ normal(control_mu, control_sigma);
 
   // generating counts

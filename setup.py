@@ -10,7 +10,7 @@ classes = """
     Programming Language :: Python :: 3
     Programming Language :: Python :: 3 :: Only
     Programming Language :: Python :: 3.4
-n    Programming Language :: Python :: 3.5
+    Programming Language :: Python :: 3.5
     Programming Language :: Python :: 3.6
     Programming Language :: Python :: 3.7
     Operating System :: Unix
@@ -42,7 +42,7 @@ setup(name='q2-matchmaker',
           'qiime2.plugins': ['q2-matchmaker=q2_matchmaker.plugin_setup:plugin']
       },
       package_data={
-          "q2_matchmaker": ['assets/nb_case_control.stan'],
+          "q2_matchmaker": ['assets/nb_case_control.stan', 'assets/nb_case_control_single.stan'],
       },
       scripts=glob('scripts/*'),
       classifiers=classifiers)
