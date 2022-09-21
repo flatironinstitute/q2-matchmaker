@@ -20,9 +20,9 @@ parameters {
   real<lower=0> disp[2];       // per microbe dispersion for both case-controls
   real batch_mu[B];            // per batch bias
   real<lower=0> batch_disp[B]; // per batch dispersion
-  real<offset=control_loc, multiplier=3> control_mu;
-  real control_sigma;
-  vector<offset=control_mu, multiplier=control_sigma>[C] control;
+  real control_mu;
+  real<lower=0> control_sigma;
+  vector[C] control;
   real a1;
 }
 
